@@ -145,9 +145,6 @@ void champsim::plain_printer_csv::print(CACHE::stats_type stats)
        std::pair{"L1_TRANSLATION", champsim::to_underlying(access_type::L1_TRANSLATION)}}};
   
   // TODO[OSM] : To track hit/miss in cache
-  fmt::print(stream, "CACHE,TYPE,TOTAL,HIT,MISS\n");
-
-  // TODO[OSM] : To track hit/miss in cache
   for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
     uint64_t TOTAL_HIT = 0, TOTAL_MISS = 0;
     for (const auto& type : types) {
@@ -171,7 +168,8 @@ void champsim::plain_printer_csv::print(DRAM_CHANNEL::stats_type stats) {
 // TODO[OSM] : To track hit/miss in cache
 void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 {
-  fmt::print(stream, "=== {} CSV ===\n", stats.name);
+  fmt::print(stream, "\n=== {} CSV ===\n", stats.name);
+  fmt::print(stream, "CACHE,TYPE,TOTAL,HIT,MISS\n");
 
   /*
   int i = 0;
