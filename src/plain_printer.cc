@@ -169,9 +169,33 @@ void champsim::plain_printer_csv::print(DRAM_CHANNEL::stats_type stats) {
 	return;
 }
 
+// TODO[OSM] : For Prefetcher hit in PTW
+void champsim::plain_printer_csv::print_prefetcher(CACHE::stats_type stats)
+{
+  for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
+    fmt::print(stream, "{},{},{},{},{},{},{},{},{},{}\n", 
+		    stats.name, stats.pf_requested, stats.pf_issued,stats.pf_useful, stats.pf_useless,
+		    stats.pf_l5_useful, stats.pf_l4_useful, stats.pf_l3_useful, stats.pf_l2_useful, stats.pf_l1_useful);
+  }
+}
+
 // TODO[OSM] : To track hit/miss in cache
 void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 {
+  // TODO[OSM] : For Prefetcher hit in PTW
+  fmt::print(stream, "\n=== {} PREFETCH CSV ===\n", stats.name);
+  fmt::print(stream, "CACHE,REQUESTED,ISSUED,USEFUL,USELESS,L5_USEFUL,L4_USEFUL,L3_USEFUL,L2_USEFUL,L1_USEFUL,VALUE\n");
+  
+  // TODO[OSM] : For Prefetcher hit in PTW
+  if (NUM_CPUS > 1) {
+    for (const auto& stat : stats.sim_cache_stats)
+      print_prefetcher(stat);
+  }
+  
+  // TODO[OSM] : For Prefetcher hit in PTW
+  for (const auto& stat : stats.roi_cache_stats)
+    print_prefetcher(stat);
+  
   fmt::print(stream, "\n=== {} CSV ===\n", stats.name);
   fmt::print(stream, "CACHE,TYPE,TOTAL,HIT,MISS\n");
 

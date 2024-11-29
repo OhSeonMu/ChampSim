@@ -53,12 +53,22 @@ class plain_printer_csv
   void print(O3_CPU::stats_type);
   void print(CACHE::stats_type);
   void print(DRAM_CHANNEL::stats_type);
-  
+
   template <typename T>
   void print(std::vector<T> stats_list)
   {
     for (auto& stats : stats_list)
       print(stats);
+  }
+  
+  // TODO[OSM] : For Prefetcher hit in PTW
+  void print_prefetcher(CACHE::stats_type);
+  
+  template <typename T>
+  void print_prefetcher(std::vector<T> stats_list)
+  {
+    for (auto& stats : stats_list)
+      print_prefetcher(stats);
   }
 
 public:
@@ -66,6 +76,10 @@ public:
   
   void print(phase_stats& stats);
   void print(std::vector<phase_stats>& stats);
+  
+  // TODO[OSM] : For Prefetcher hit in PTW
+  void print_prefetcher(phase_stats& stats);
+  void print_prefetcher(std::vector<phase_stats>& stats);
 };
 
 class json_printer
