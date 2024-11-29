@@ -43,9 +43,17 @@ struct cache_stats {
   uint64_t pf_requested = 0;
   uint64_t pf_issued = 0;
   uint64_t pf_useful = 0;
+  
+  // TODO[OSM] : For Prefetcher hit in PTW
+  uint64_t pf_l5_useful = 0;
+  uint64_t pf_l4_useful = 0;
+  uint64_t pf_l3_useful = 0;
+  uint64_t pf_l2_useful = 0;
+  uint64_t pf_l1_useful = 0;
+
   uint64_t pf_useless = 0;
   uint64_t pf_fill = 0;
-
+  
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> hits = {};
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> misses = {};
 

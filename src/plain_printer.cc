@@ -82,6 +82,10 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
     fmt::print(stream, "{} PREFETCH REQUESTED: {:10} ISSUED: {:10} USEFUL: {:10} USELESS: {:10}\n", stats.name, stats.pf_requested, stats.pf_issued,
                stats.pf_useful, stats.pf_useless);
 
+    // TODO[OSM] : For Prefetcher hit in PTW
+    fmt::print(stream, "{} USEFUL: {:10} L5_USEFUL: {:10} L4_USEFUL: {:10} L3_USEFUL: {:10} L2_USEFUL: {:10} L1_USEFUL: {:10} \n", stats.name, stats.pf_useful, stats.pf_l5_useful, stats.pf_l4_useful, stats.pf_l3_useful, stats.pf_l2_useful, 
+	       stats.pf_l1_useful);
+
     fmt::print(stream, "{} AVERAGE MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_miss_latency);
   }
 }

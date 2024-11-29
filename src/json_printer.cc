@@ -59,6 +59,14 @@ void to_json(nlohmann::json& j, const CACHE::stats_type stats)
   statsmap.emplace("prefetch requested", stats.pf_requested);
   statsmap.emplace("prefetch issued", stats.pf_issued);
   statsmap.emplace("useful prefetch", stats.pf_useful);
+
+  // TODO[OSM] : For Prefetcher hit in PTW
+  statsmap.emplace("L5 useful prefetch", stats.pf_l5_useful);
+  statsmap.emplace("L4 useful prefetch", stats.pf_l4_useful);
+  statsmap.emplace("L3 useful prefetch", stats.pf_l3_useful);
+  statsmap.emplace("L2 useful prefetch", stats.pf_l2_useful);
+  statsmap.emplace("L1 useful prefetch", stats.pf_l1_useful);
+  
   statsmap.emplace("useless prefetch", stats.pf_useless);
   statsmap.emplace("miss latency", stats.avg_miss_latency);
   for (const auto& type : types) {

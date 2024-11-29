@@ -206,6 +206,19 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     if (useful_prefetch) {
       ++sim_stats.pf_useful;
       way->prefetch = false;
+      
+      // TODO[OSM] : For Prefetcher hit in PTW
+      if (handle_pkt.type == access_type::L5_TRANSLATION)
+        ++sim_stats.pf_l5_useful;
+      if (handle_pkt.type == access_type::L4_TRANSLATION)
+        ++sim_stats.pf_l4_useful;
+      if (handle_pkt.type == access_type::L3_TRANSLATION)
+        ++sim_stats.pf_l3_useful;
+      if (handle_pkt.type == access_type::L2_TRANSLATION)
+        ++sim_stats.pf_l2_useful;
+      if (handle_pkt.type == access_type::L1_TRANSLATION)
+        ++sim_stats.pf_l1_useful;
+
     }
   }
 
@@ -236,6 +249,19 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
       // Mark the prefetch as useful
       if (mshr_entry->prefetch_from_this)
         ++sim_stats.pf_useful;
+
+      // TODO[OSM] : For Prefetcher hit in PTW
+      if (handle_pkt.type == access_type::L5_TRANSLATION)
+        ++sim_stats.pf_l5_useful;
+      if (handle_pkt.type == access_type::L4_TRANSLATION)
+        ++sim_stats.pf_l4_useful;
+      if (handle_pkt.type == access_type::L3_TRANSLATION)
+        ++sim_stats.pf_l3_useful;
+      if (handle_pkt.type == access_type::L2_TRANSLATION)
+        ++sim_stats.pf_l2_useful;
+      if (handle_pkt.type == access_type::L1_TRANSLATION)
+        ++sim_stats.pf_l1_useful;
+
     }
 
     *mshr_entry = mshr_type::merge(*mshr_entry, to_allocate);
@@ -717,6 +743,14 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.pf_requested = sim_stats.pf_requested;
   roi_stats.pf_issued = sim_stats.pf_issued;
   roi_stats.pf_useful = sim_stats.pf_useful;
+      
+  // TODO[OSM] : For Prefetcher hit in PTW
+  roi_stats.pf_l5_useful = sim_stats.pf_l5_useful;
+  roi_stats.pf_l4_useful = sim_stats.pf_l4_useful;
+  roi_stats.pf_l3_useful = sim_stats.pf_l3_useful;
+  roi_stats.pf_l2_useful = sim_stats.pf_l2_useful;
+  roi_stats.pf_l1_useful = sim_stats.pf_l1_useful;
+
   roi_stats.pf_useless = sim_stats.pf_useless;
   roi_stats.pf_fill = sim_stats.pf_fill;
 
