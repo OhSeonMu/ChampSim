@@ -33,7 +33,13 @@ enum class access_type : unsigned {
   RFO,
   PREFETCH,
   WRITE,
-  TRANSLATION,
+  // TODO[OSM] : To track hit/miss in cache
+  // TRANSLATION,
+  L5_TRANSLATION,
+  L4_TRANSLATION,
+  L3_TRANSLATION,
+  L2_TRANSLATION,
+  L1_TRANSLATION,
   NUM_TYPES,
 };
 

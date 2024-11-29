@@ -53,10 +53,18 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
 
 void champsim::plain_printer::print(CACHE::stats_type stats)
 {
-  constexpr std::array<std::pair<std::string_view, std::size_t>, 5> types{
+  // TODO[OSM] : To track hit/miss in cache
+  // constexpr std::array<std::pair<std::string_view, std::size_t>, 5> types{
+  constexpr std::array<std::pair<std::string_view, std::size_t>, 9> types{
       {std::pair{"LOAD", champsim::to_underlying(access_type::LOAD)}, std::pair{"RFO", champsim::to_underlying(access_type::RFO)},
        std::pair{"PREFETCH", champsim::to_underlying(access_type::PREFETCH)}, std::pair{"WRITE", champsim::to_underlying(access_type::WRITE)},
-       std::pair{"TRANSLATION", champsim::to_underlying(access_type::TRANSLATION)}}};
+       // TODO[OSM] : To track hit/miss in cache
+       //std::pair{"TRANSLATION", champsim::to_underlying(access_type::TRANSLATION)}}};
+       std::pair{"L5_TRANSLATION", champsim::to_underlying(access_type::L5_TRANSLATION)},
+       std::pair{"L4_TRANSLATION", champsim::to_underlying(access_type::L4_TRANSLATION)},
+       std::pair{"L3_TRANSLATION", champsim::to_underlying(access_type::L3_TRANSLATION)},
+       std::pair{"L2_TRANSLATION", champsim::to_underlying(access_type::L2_TRANSLATION)},
+       std::pair{"L1_TRANSLATION", champsim::to_underlying(access_type::L1_TRANSLATION)}}};
 
   for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
     uint64_t TOTAL_HIT = 0, TOTAL_MISS = 0;
@@ -81,18 +89,7 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
 void champsim::plain_printer::print(DRAM_CHANNEL::stats_type stats)
 {
   fmt::print(stream, "\n{} RQ ROW_BUFFER_HIT: {:10}\n  ROW_BUFFER_MISS: {:10}\n", stats.name, stats.RQ_ROW_BUFFER_HIT, stats.RQ_ROW_BUFFER_MISS);
-  if (stats.dbus_count_congested > 0)
-    fmt::print(stream, " AVG DBUS CONGESTED CYCLE: {:.4g}\n", std::ceil(stats.dbus_cycle_congested) / std::ceil(stats.dbus_count_congested));
-  else
-    fmt::print(stream, " AVG DBUS CONGESTED CYCLE: -\n");
-  fmt::print(stream, "WQ ROW_BUFFER_HIT: {:10}\n  ROW_BUFFER_MISS: {:10}\n  FULL: {:10}\n", stats.name, stats.WQ_ROW_BUFFER_HIT, stats.WQ_ROW_BUFFER_MISS,
-             stats.WQ_FULL);
-}
-
-void champsim::plain_printer::print(champsim::phase_stats& stats)
-{
-  fmt::print(stream, "=== {} ===\n", stats.name);
-
+  if (stats.dbus_count_congested > 0) fmt::print(stream, " AVG DBUS CONGESTED CYCLE: {:.4g}\n", std::ceil(stats.dbus_cycle_congested) / std::ceil(stats.dbus_count_congested)); else fmt::print(stream, " AVG DBUS CONGESTED CYCLE: -\n"); fmt::print(stream, "WQ ROW_BUFFER_HIT: {:10}\n  ROW_BUFFER_MISS: {:10}\n  FULL: {:10}\n", stats.name, stats.WQ_ROW_BUFFER_HIT, stats.WQ_ROW_BUFFER_MISS, stats.WQ_FULL); } void champsim::plain_printer::print(champsim::phase_stats& stats) { fmt::print(stream, "=== {} ===\n", stats.name); 
   int i = 0;
   for (auto tn : stats.trace_names)
     fmt::print(stream, "CPU {} runs {}", i++, tn);
@@ -121,6 +118,103 @@ void champsim::plain_printer::print(champsim::phase_stats& stats)
 }
 
 void champsim::plain_printer::print(std::vector<phase_stats>& stats)
+{
+  for (auto p : stats)
+    print(p);
+}
+
+// TODO[OSM] : To track hit/miss in cache
+void champsim::plain_printer_csv::print(O3_CPU::stats_type stats) {
+    return;
+}
+
+// TODO[OSM] : To track hit/miss in cache
+void champsim::plain_printer_csv::print(CACHE::stats_type stats)
+{
+  // TODO[OSM] : To track hit/miss in cache
+  // constexpr std::array<std::pair<std::string_view, std::size_t>, 5> types{
+  constexpr std::array<std::pair<std::string_view, std::size_t>, 9> types{
+      {std::pair{"LOAD", champsim::to_underlying(access_type::LOAD)}, std::pair{"RFO", champsim::to_underlying(access_type::RFO)},
+       std::pair{"PREFETCH", champsim::to_underlying(access_type::PREFETCH)}, std::pair{"WRITE", champsim::to_underlying(access_type::WRITE)},
+       // TODO[OSM] : To track hit/miss in cache
+       //std::pair{"TRANSLATION", champsim::to_underlying(access_type::TRANSLATION)}}};
+       std::pair{"L5_TRANSLATION", champsim::to_underlying(access_type::L5_TRANSLATION)},
+       std::pair{"L4_TRANSLATION", champsim::to_underlying(access_type::L4_TRANSLATION)},
+       std::pair{"L3_TRANSLATION", champsim::to_underlying(access_type::L3_TRANSLATION)},
+       std::pair{"L2_TRANSLATION", champsim::to_underlying(access_type::L2_TRANSLATION)},
+       std::pair{"L1_TRANSLATION", champsim::to_underlying(access_type::L1_TRANSLATION)}}};
+  
+  // TODO[OSM] : To track hit/miss in cache
+  fmt::print(stream, "CACHE,TYPE,TOTAL,HIT,MISS\n");
+
+  // TODO[OSM] : To track hit/miss in cache
+  for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
+    uint64_t TOTAL_HIT = 0, TOTAL_MISS = 0;
+    for (const auto& type : types) {
+      TOTAL_HIT += stats.hits.at(type.second).at(cpu);
+      TOTAL_MISS += stats.misses.at(type.second).at(cpu);
+    }
+
+    fmt::print(stream, "{},TOTAL,{},{},{}\n", stats.name, TOTAL_HIT + TOTAL_MISS, TOTAL_HIT, TOTAL_MISS);
+    for (const auto& type : types) {
+      fmt::print(stream, "{},{},{},{},{}\n", stats.name, type.first,
+                 stats.hits[type.second][cpu] + stats.misses[type.second][cpu], stats.hits[type.second][cpu], stats.misses[type.second][cpu]);
+    }
+  }
+}
+
+// TODO[OSM] : To track hit/miss in cache
+void champsim::plain_printer_csv::print(DRAM_CHANNEL::stats_type stats) {
+	return;
+}
+
+// TODO[OSM] : To track hit/miss in cache
+void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
+{
+  fmt::print(stream, "=== {} CSV ===\n", stats.name);
+
+  /*
+  int i = 0;
+  for (auto tn : stats.trace_names)
+    fmt::print(stream, "CPU {} runs {}\n", i++, tn);
+  */
+
+  if (NUM_CPUS > 1) {
+    /*
+    fmt::print(stream, "\nTotal Simulation Statistics (not including warmup)\n");
+
+    for (const auto& stat : stats.sim_cpu_stats)
+      print(stat);
+    */
+    for (const auto& stat : stats.sim_cache_stats)
+      print(stat);
+  }
+
+  // fmt::print(stream, "\nRegion of Interest Statistics\n");
+
+  /*
+  for (const auto& stat : stats.roi_cpu_stats)
+    print(stat);
+  */
+  
+  for (const auto& stat : stats.roi_cache_stats)
+    print(stat);
+  
+  /*
+  fmt::print(stream, "\nDRAM Statistics\n");
+  for (const auto& stat : stats.roi_dram_stats)
+    print(stat);
+  */
+  
+  /*
+  fmt::print(stream, "\nSLOW DRAM Statistics\n");
+  for (const auto& stat : stats.roi_slow_dram_stats)
+    print(stat);
+  */
+}
+
+// TODO[OSM] : To track hit/miss in cache
+void champsim::plain_printer_csv::print(std::vector<phase_stats>& stats)
 {
   for (auto p : stats)
     print(p);

@@ -99,7 +99,18 @@ auto PageTableWalker::step_translation(const mshr_type& source) -> std::optional
   packet.asid[0] = source.asid[0];
   packet.asid[1] = source.asid[1];
   packet.is_translated = true;
-  packet.type = access_type::TRANSLATION;
+  // TODO[OSM] : To track hit/miss in cache 
+  // packet.type = access_type::TRANSLATION;
+  if(source.translation_level == 4)
+	  packet.type = access_type::L5_TRANSLATION;
+  if(source.translation_level == 3) 
+	  packet.type = access_type::L4_TRANSLATION;
+  if(source.translation_level == 2) 
+	  packet.type = access_type::L3_TRANSLATION;
+  if(source.translation_level == 1) 
+	  packet.type = access_type::L2_TRANSLATION;
+  if(source.translation_level == 0) 
+	  packet.type = access_type::L1_TRANSLATION;
 
   bool success = lower_level->add_rq(packet);
 

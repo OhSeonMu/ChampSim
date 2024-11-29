@@ -696,7 +696,9 @@ void CACHE::begin_phase()
 void CACHE::end_phase(unsigned finished_cpu)
 {
   auto total_miss = 0ull;
-  for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
+  // TODO[OSM] : To track hit/miss in cache
+  // for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
+  for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::L5_TRANSLATION, access_type::L4_TRANSLATION, access_type::L3_TRANSLATION, access_type::L2_TRANSLATION, access_type::L1_TRANSLATION}) {
     total_miss =
         std::accumulate(std::begin(sim_stats.misses.at(champsim::to_underlying(type))), std::end(sim_stats.misses.at(champsim::to_underlying(type))), total_miss);
   }
@@ -705,7 +707,9 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.total_miss_latency = sim_stats.total_miss_latency;
   roi_stats.avg_miss_latency = std::ceil(roi_stats.total_miss_latency) / std::ceil(total_miss);
 
-  for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
+  // TODO[OSM] : To track hit/miss in cache
+  // for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
+  for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::L5_TRANSLATION, access_type::L4_TRANSLATION, access_type::L3_TRANSLATION, access_type::L2_TRANSLATION, access_type::L1_TRANSLATION}) {
     roi_stats.hits.at(champsim::to_underlying(type)).at(finished_cpu) = sim_stats.hits.at(champsim::to_underlying(type)).at(finished_cpu);
     roi_stats.misses.at(champsim::to_underlying(type)).at(finished_cpu) = sim_stats.misses.at(champsim::to_underlying(type)).at(finished_cpu);
   }

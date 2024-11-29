@@ -42,10 +42,18 @@ void to_json(nlohmann::json& j, const O3_CPU::stats_type stats)
 
 void to_json(nlohmann::json& j, const CACHE::stats_type stats)
 {
-  constexpr std::array<std::pair<std::string_view, std::size_t>, 5> types{
+  //TODO[OSM] : To track hit/miss in cache
+  // constexpr std::array<std::pair<std::string_view, std::size_t>, 5> types{
+  constexpr std::array<std::pair<std::string_view, std::size_t>, 9> types{
       {std::pair{"LOAD", champsim::to_underlying(access_type::LOAD)}, std::pair{"RFO", champsim::to_underlying(access_type::RFO)},
        std::pair{"PREFETCH", champsim::to_underlying(access_type::PREFETCH)}, std::pair{"WRITE", champsim::to_underlying(access_type::WRITE)},
-       std::pair{"TRANSLATION", champsim::to_underlying(access_type::TRANSLATION)}}};
+       //TODO[OSM] : To track hit/miss in cache
+       // std::pair{"TRANSLATION", champsim::to_underlying(access_type::TRANSLATION)}}};
+       std::pair{"L5_TRANSLATION", champsim::to_underlying(access_type::L5_TRANSLATION)},
+       std::pair{"L4_TRANSLATION", champsim::to_underlying(access_type::L4_TRANSLATION)},
+       std::pair{"L3_TRANSLATION", champsim::to_underlying(access_type::L3_TRANSLATION)},
+       std::pair{"L2_TRANSLATION", champsim::to_underlying(access_type::L2_TRANSLATION)},
+       std::pair{"L1_TRANSLATION", champsim::to_underlying(access_type::L1_TRANSLATION)}}};
 
   std::map<std::string, nlohmann::json> statsmap;
   statsmap.emplace("prefetch requested", stats.pf_requested);
