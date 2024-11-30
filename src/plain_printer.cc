@@ -184,7 +184,7 @@ void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 {
   // TODO[OSM] : For Prefetcher hit in PTW
   fmt::print(stream, "\n=== {} PREFETCH CSV ===\n", stats.name);
-  fmt::print(stream, "CACHE,REQUESTED,ISSUED,USEFUL,USELESS,L5_USEFUL,L4_USEFUL,L3_USEFUL,L2_USEFUL,L1_USEFUL,VALUE\n");
+  fmt::print(stream, "CACHE,REQUESTED,ISSUED,USEFUL,USELESS,L5_USEFUL,L4_USEFUL,L3_USEFUL,L2_USEFUL,L1_USEFUL\n");
   
   // TODO[OSM] : For Prefetcher hit in PTW
   if (NUM_CPUS > 1) {
