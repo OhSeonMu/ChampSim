@@ -181,6 +181,12 @@ def parse_normalized(cores, caches, ptws, pmem, vmem, merged_configs, branch_con
         if 'prefetch_activate' in c:
             c['prefetch_activate'] = split_string_or_list(c['prefetch_activate'])
 
+    # TODO[OSM] : perfect cache for PTW 
+    # Set perfect_activate
+    for c in caches.values():
+        if 'perfect_activate' in c:
+            c['perfect_activate'] = split_string_or_list(c['perfect_activate'])
+
     tlb_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('ITLB', 'DTLB')))
     l1d_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('L1I', 'L1D')))
     caches = util.combine_named(

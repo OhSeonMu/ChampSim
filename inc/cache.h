@@ -130,6 +130,10 @@ class CACHE : public champsim::operable
   void finish_packet(const response_type& packet);
   void finish_translation(const response_type& packet);
 
+  // TODO[OSM] : perfect cache for PTW
+  bool test_hit(const tag_lookup_type& handle_pkt);
+  bool test_fill(const mshr_type& fill_mshr);
+  
   void issue_translation();
 
   struct BLOCK {
@@ -181,6 +185,10 @@ public:
   bool ever_seen_data = false;
   const unsigned pref_activate_mask = (1 << champsim::to_underlying(access_type::LOAD)) | (1 << champsim::to_underlying(access_type::PREFETCH));
 
+  // TODO[OSM] : perfect cache for PTW
+  const bool perfect_cache = 0;
+  const unsigned perf_activate_mask = (1 << champsim::to_underlying(access_type::L2_TRANSLATION)) | (1 << champsim::to_underlying(access_type::L1_TRANSLATION));
+
   using stats_type = cache_stats;
 
   stats_type sim_stats, roi_stats;
@@ -223,7 +231,7 @@ public:
 
   [[deprecated("Use CACHE::prefetch_line(pf_addr, fill_this_level, prefetch_metadata) instead.")]] int
   prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, bool fill_this_level, uint32_t prefetch_metadata);
-
+    
   void print_deadlock() override;
 
 #include "cache_module_decl.inc"
@@ -321,6 +329,11 @@ public:
     bool m_va_pref{};
 
     unsigned m_pref_act_mask{};
+        
+    // TODO[OSM] : perfect cache for PTW
+    bool m_perfect_cache{};
+    unsigned m_perf_act_mask{};
+
     std::vector<CACHE::channel_type*> m_uls{};
     CACHE::channel_type* m_ll{};
     CACHE::channel_type* m_lt{nullptr};
@@ -332,7 +345,9 @@ public:
         : m_name(other.m_name), m_freq_scale(other.m_freq_scale), m_sets(other.m_sets), m_ways(other.m_ways), m_pq_size(other.m_pq_size),
           m_mshr_size(other.m_mshr_size), m_hit_lat(other.m_hit_lat), m_fill_lat(other.m_fill_lat), m_latency(other.m_latency), m_max_tag(other.m_max_tag),
           m_max_fill(other.m_max_fill), m_offset_bits(other.m_offset_bits), m_pref_load(other.m_pref_load), m_wq_full_addr(other.m_wq_full_addr),
-          m_va_pref(other.m_va_pref), m_pref_act_mask(other.m_pref_act_mask), m_uls(other.m_uls), m_ll(other.m_ll), m_lt(other.m_lt)
+          m_va_pref(other.m_va_pref), m_pref_act_mask(other.m_pref_act_mask), m_uls(other.m_uls), m_ll(other.m_ll), m_lt(other.m_lt),
+          // TODO[OSM] : perfect cache for PTW
+	  m_perfect_cache(other.m_perfect_cache), m_perf_act_mask(other.m_perf_act_mask)
     {
     }
 
@@ -429,10 +444,29 @@ public:
       m_va_pref = false;
       return *this;
     }
+    // TODO[OSM] : perfect cache for PTW
+    self_type& set_perfect_cache()
+    {
+      m_perfect_cache = true;
+      return *this;
+    }
+    // TODO[OSM] : perfect cache for PTW
+    self_type& reset_perfect_cache()
+    {
+      m_perfect_cache = false;
+      return *this;
+    }
     template <typename... Elems>
     self_type& prefetch_activate(Elems... pref_act_elems)
     {
       m_pref_act_mask = ((1u << champsim::to_underlying(pref_act_elems)) | ... | 0);
+      return *this;
+    }
+    // TODO[OSM] : perfect cache for PTW
+    template <typename... Elems>
+    self_type& perfect_activate(Elems... perf_act_elems)
+    {
+      m_perf_act_mask = ((1u << champsim::to_underlying(perf_act_elems)) | ... | 0);
       return *this;
     }
     self_type& upper_levels(std::vector<CACHE::channel_type*>&& uls_)
@@ -468,6 +502,8 @@ public:
         NUM_WAY(b.m_ways), MSHR_SIZE(b.m_mshr_size), PQ_SIZE(b.m_pq_size), HIT_LATENCY((b.m_hit_lat > 0) ? b.m_hit_lat : b.m_latency - b.m_fill_lat),
         FILL_LATENCY(b.m_fill_lat), OFFSET_BITS(b.m_offset_bits), MAX_TAG(b.m_max_tag), MAX_FILL(b.m_max_fill), prefetch_as_load(b.m_pref_load),
         match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),
+        // TODO[OSM] : perfect cache for PTW
+        perfect_cache(b.m_perfect_cache),perf_activate_mask(b.m_perf_act_mask),
         module_pimpl(std::make_unique<module_model<P_FLAG, R_FLAG>>(this))
   {
   }

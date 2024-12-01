@@ -67,8 +67,12 @@ const auto default_l1i = CACHE::Builder{}
                              .offset_bits(LOG2_BLOCK_SIZE)
                              .reset_prefetch_as_load()
                              .set_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                             .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                              // Specifying default prefetchers and replacement policies like this is probably dangerous
                              // since the names could change.
                              // We're doing it anyway, for now.
@@ -87,8 +91,12 @@ const auto default_l1d = CACHE::Builder{}
                              .offset_bits(LOG2_BLOCK_SIZE)
                              .reset_prefetch_as_load()
                              .reset_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                             .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                              .prefetcher<CACHE::pprefetcherDno>()
                              .replacement<CACHE::rreplacementDlru>();
 
@@ -104,8 +112,12 @@ const auto default_l2c = CACHE::Builder{}
                              .offset_bits(LOG2_BLOCK_SIZE)
                              .reset_prefetch_as_load()
                              .reset_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                             .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                              .prefetcher<CACHE::pprefetcherDno>()
                              .replacement<CACHE::rreplacementDlru>();
 
@@ -121,8 +133,12 @@ const auto default_itlb = CACHE::Builder{}
                               .offset_bits(LOG2_PAGE_SIZE)
                               .reset_prefetch_as_load()
                               .set_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                              .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                               .prefetcher<CACHE::pprefetcherDno>()
                               .replacement<CACHE::rreplacementDlru>();
 
@@ -138,8 +154,12 @@ const auto default_dtlb = CACHE::Builder{}
                               .offset_bits(LOG2_PAGE_SIZE)
                               .reset_prefetch_as_load()
                               .reset_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                              .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                               .prefetcher<CACHE::pprefetcherDno>()
                               .replacement<CACHE::rreplacementDlru>();
 
@@ -155,8 +175,12 @@ const auto default_stlb = CACHE::Builder{}
                               .offset_bits(LOG2_PAGE_SIZE)
                               .reset_prefetch_as_load()
                               .reset_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                              .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                               .prefetcher<CACHE::pprefetcherDno>()
                               .replacement<CACHE::rreplacementDlru>();
 
@@ -173,8 +197,12 @@ const auto default_llc = CACHE::Builder{}
                              .offset_bits(LOG2_BLOCK_SIZE)
                              .reset_prefetch_as_load()
                              .reset_virtual_prefetch()
+			      // TODO[OSM] : perfect cache for PTW
+                             .reset_perfect_cache()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
+			      // TODO[OSM] : perfect cache for PTW
+                              .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                              .prefetcher<CACHE::pprefetcherDno>()
                              .replacement<CACHE::rreplacementDlru>();
 

@@ -160,7 +160,10 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             ('wq_check_full_addr', True): '.set_wq_checks_full_addr()',
             ('wq_check_full_addr', False): '.reset_wq_checks_full_addr()',
             ('virtual_prefetch', True): '.set_virtual_prefetch()',
-            ('virtual_prefetch', False): '.reset_virtual_prefetch()'
+            ('virtual_prefetch', False): '.reset_virtual_prefetch()',
+            # TODO[OSM] : perfect cache for PTW
+            ('perfect_cache', True): '.set_perfect_cache()',
+            ('perfect_cache', False): '.reset_perfect_cache()',
         }
 
         yield from (v.format(**elem) for k,v in cache_builder_parts.items() if k in elem)
@@ -169,6 +172,10 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
         # Create prefetch activation masks
         if 'prefetch_activate' in elem:
             yield '.prefetch_activate({})'.format(', '.join('access_type::'+t for t in elem['prefetch_activate']))
+        
+        # TODO[OSM] : perfect cache for PTW
+        if 'perfect_activate' in elem:
+            yield '.perfect_activate({})'.format(', '.join('access_type::'+t for t in elem['perfect_activate']))
 
         if elem.get('_replacement_data'):
             yield '.replacement<{}>()'.format(' | '.join('CACHE::r{}'.format(k['name']) for k in elem['_replacement_data']))
