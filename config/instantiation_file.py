@@ -164,10 +164,16 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             # TODO[OSM] : perfect cache for PTW
             ('perfect_cache', True): '.set_perfect_cache()',
             ('perfect_cache', False): '.reset_perfect_cache()',
+            # TODO[OSM] : perfect tlb for PTW
+            ('perfect_tlb', True): '.set_perfect_tlb()',
+            ('perfect_tlb', False): '.reset_perfect_tlb()',
         }
 
         yield from (v.format(**elem) for k,v in cache_builder_parts.items() if k in elem)
         yield from (v.format(**elem) for k,v in local_cache_builder_parts.items() if k[0] in elem and k[1] == elem[k[0]])
+
+        # TODO[OSM] : perfect tlb for PTW
+        yield '.virtual_memory(&vmem)'
 
         # Create prefetch activation masks
         if 'prefetch_activate' in elem:

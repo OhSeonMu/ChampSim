@@ -17,6 +17,13 @@
 #ifndef CHAMPSIM_H
 #define CHAMPSIM_H
 
+// TODO[OSM] : for debugging
+/*
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT
+#endif
+*/
+
 #include <cstdint>
 #include <exception>
 

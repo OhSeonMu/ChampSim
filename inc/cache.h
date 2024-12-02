@@ -37,6 +37,9 @@
 #include "operable.h"
 #include <type_traits>
 
+// TODO[OSM] : For Prefetcher tlb in PTW
+class VirtualMemory;
+
 struct cache_stats {
   std::string name;
   // prefetch stats
@@ -189,6 +192,10 @@ public:
   const bool perfect_cache = 0;
   const unsigned perf_activate_mask = (1 << champsim::to_underlying(access_type::L2_TRANSLATION)) | (1 << champsim::to_underlying(access_type::L1_TRANSLATION));
 
+  // TODO[OSM] : perfect tlb for PTW
+  const bool perfect_tlb = 0;
+  VirtualMemory* vmem;   
+
   using stats_type = cache_stats;
 
   stats_type sim_stats, roi_stats;
@@ -334,6 +341,10 @@ public:
     bool m_perfect_cache{};
     unsigned m_perf_act_mask{};
 
+    // TODO[OSM] : perfect tlb for PTW
+    bool m_perfect_tlb{};
+    VirtualMemory* m_vmem{}; 
+
     std::vector<CACHE::channel_type*> m_uls{};
     CACHE::channel_type* m_ll{};
     CACHE::channel_type* m_lt{nullptr};
@@ -347,7 +358,8 @@ public:
           m_max_fill(other.m_max_fill), m_offset_bits(other.m_offset_bits), m_pref_load(other.m_pref_load), m_wq_full_addr(other.m_wq_full_addr),
           m_va_pref(other.m_va_pref), m_pref_act_mask(other.m_pref_act_mask), m_uls(other.m_uls), m_ll(other.m_ll), m_lt(other.m_lt),
           // TODO[OSM] : perfect cache for PTW
-	  m_perfect_cache(other.m_perfect_cache), m_perf_act_mask(other.m_perf_act_mask)
+          // TODO[OSM] : perfect tlb for PTW
+	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem)
     {
     }
 
@@ -456,6 +468,24 @@ public:
       m_perfect_cache = false;
       return *this;
     }
+    // TODO[OSM] : perfect tlb for PTW
+    self_type& set_perfect_tlb()
+    {
+      m_perfect_tlb = true;
+      return *this;
+    }
+    // TODO[OSM] : perfect tlb for PTW
+    self_type& reset_perfect_tlb()
+    {
+      m_perfect_tlb = false;
+      return *this;
+    }
+    // TODO[OSM] : perfect tlb for PTW
+    self_type& virtual_memory(VirtualMemory* vmem_)
+    {
+      m_vmem = vmem_;
+      return *this;
+    }
     template <typename... Elems>
     self_type& prefetch_activate(Elems... pref_act_elems)
     {
@@ -503,7 +533,8 @@ public:
         FILL_LATENCY(b.m_fill_lat), OFFSET_BITS(b.m_offset_bits), MAX_TAG(b.m_max_tag), MAX_FILL(b.m_max_fill), prefetch_as_load(b.m_pref_load),
         match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),
         // TODO[OSM] : perfect cache for PTW
-        perfect_cache(b.m_perfect_cache),perf_activate_mask(b.m_perf_act_mask),
+	// TODO[OSM] : perfect tlb for PTW
+        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem),
         module_pimpl(std::make_unique<module_model<P_FLAG, R_FLAG>>(this))
   {
   }

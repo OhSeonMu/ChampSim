@@ -69,6 +69,8 @@ const auto default_l1i = CACHE::Builder{}
                              .set_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                             .reset_perfect_tlb()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -93,6 +95,8 @@ const auto default_l1d = CACHE::Builder{}
                              .reset_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                             .reset_perfect_tlb()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -114,6 +118,8 @@ const auto default_l2c = CACHE::Builder{}
                              .reset_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                             .reset_perfect_tlb()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -134,7 +140,9 @@ const auto default_itlb = CACHE::Builder{}
                               .reset_prefetch_as_load()
                               .set_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
-                             .reset_perfect_cache()
+                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                              .reset_perfect_tlb()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -156,6 +164,8 @@ const auto default_dtlb = CACHE::Builder{}
                               .reset_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                             .reset_perfect_tlb()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -177,6 +187,8 @@ const auto default_stlb = CACHE::Builder{}
                               .reset_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                             .reset_perfect_tlb()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -199,6 +211,8 @@ const auto default_llc = CACHE::Builder{}
                              .reset_virtual_prefetch()
 			      // TODO[OSM] : perfect cache for PTW
                              .reset_perfect_cache()
+			      // TODO[OSM] : perfect tlb for PTW
+                             .reset_perfect_tlb()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW

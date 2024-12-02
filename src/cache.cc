@@ -32,6 +32,9 @@
 #include "util/span.h"
 #include <fmt/core.h>
 
+// TODO[OSM] : perfect tlb for PTW
+#include "vmem.h"
+
 CACHE::tag_lookup_type::tag_lookup_type(request_type req, bool local_pref, bool skip)
     : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), cpu(req.cpu),
       type(req.type), prefetch_from_this(local_pref), skip_fill(skip), is_translated(req.is_translated), instr_depend_on_me(req.instr_depend_on_me)
@@ -321,6 +324,12 @@ bool CACHE::test_hit(const tag_lookup_type& handle_pkt)
 
   if (!hit && ((1 << champsim::to_underlying(handle_pkt.type)) & perf_activate_mask)) {
 	  mshr_type to_allocate{handle_pkt, current_cycle};
+	  
+	  // TODO[OSM] : perfect tlb for PTW
+	  uint64_t penalty;
+	  if (this->perfect_tlb)
+		  std::tie(to_allocate.data, penalty) = this->vmem->va_to_pa(to_allocate.cpu, to_allocate.v_address);
+	  
 	  test_fill(to_allocate);
   }
 
@@ -455,7 +464,7 @@ auto CACHE::initiate_tag_check(champsim::channel* ul)
     }
 
     // TODO[OSM] : perfect cache for PTW
-    if (this->perfect_cache)
+    if (this->perfect_cache || this->perfect_tlb)
       this->test_hit(retval);
 
     return retval;
