@@ -59,6 +59,9 @@ class PageTableWalker : public champsim::operable
 
     std::size_t translation_level = 0;
 
+    // TODO[OSM] : ASAP
+    bool is_asap = false;
+
     mshr_type(request_type req, std::size_t level);
   };
 
@@ -73,6 +76,9 @@ class PageTableWalker : public champsim::operable
   std::optional<mshr_type> handle_fill(const mshr_type& pkt);
   std::optional<mshr_type> step_translation(const mshr_type& source);
 
+  // TODO[OSM] : ASAP
+  std::optional<mshr_type> handle_read_asap(const request_type& pkt, channel_type* ul, std::size_t level);
+
   void finish_packet(const response_type& packet);
 
 public:
@@ -85,6 +91,9 @@ public:
   VirtualMemory* vmem;
 
   const uint64_t CR3_addr;
+  
+  // TODO[OSM] : ASAP
+  bool enable_asap; 
 
   class Builder
   {
@@ -99,6 +108,9 @@ public:
     std::vector<PageTableWalker::channel_type*> m_uls{};
     PageTableWalker::channel_type* m_ll{};
     VirtualMemory* m_vmem{};
+
+    // TODO[OSM] : ASAP
+    bool m_enable_asap{};
 
     friend class PageTableWalker;
 
@@ -156,6 +168,12 @@ public:
     Builder& virtual_memory(VirtualMemory* vmem_)
     {
       m_vmem = vmem_;
+      return *this;
+    }
+    // TODO[OSM] : ASAP
+    Builder& enable_asap(bool enable_asap_)
+    {
+      m_enable_asap = enable_asap_;
       return *this;
     }
   };

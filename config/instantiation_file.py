@@ -143,6 +143,9 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             yield '.tag_bandwidth({max_read})'.format(**ptw)
         if "max_write" in ptw:
             yield '.fill_bandwidth({max_write})'.format(**ptw)
+        # TODO[OSM] : ASAP
+        if "enable_asap" in ptw:
+            yield '.enable_asap({enable_asap})'.format(**ptw)
 
         yield '.upper_levels({{{}}})'.format(vector_string('&{}_to_{}_queues'.format(ul, ptw['name']) for ul in upper_levels[ptw['name']]['uppers']))
         yield '.lower_level({})'.format('&{}_to_{}_queues'.format(ptw['name'], ptw['lower_level']))

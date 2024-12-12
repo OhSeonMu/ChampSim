@@ -28,7 +28,10 @@
 
 PageTableWalker::PageTableWalker(Builder b)
     : champsim::operable(b.m_freq_scale), upper_levels(b.m_uls), lower_level(b.m_ll), NAME(b.m_name), MSHR_SIZE(b.m_mshr_size), MAX_READ(b.m_max_tag_check),
-      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first)
+      // TODO[OSM] : ASAP
+      // MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first)
+      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first), enable_asap(b.m_enable_asap)
+
 {
   std::vector<std::array<uint32_t, 3>> local_pscl_dims{};
   std::remove_copy_if(std::begin(b.m_pscl), std::end(b.m_pscl), std::back_inserter(local_pscl_dims), [](auto x) { return std::get<0>(x) == 0; });
@@ -66,6 +69,21 @@ auto PageTableWalker::handle_read(const request_type& handle_pkt, channel_type* 
     fmt::print("[{}] {} address: {:#x} v_address: {:#x} pt_page_offset: {} translation_level: {}\n", NAME, __func__, fwd_mshr.address, fwd_mshr.v_address,
                walk_offset / PTE_BYTES, walk_init.level);
   }
+
+  return step_translation(fwd_mshr);
+}
+
+// TODO[OSM] : ASAP
+auto PageTableWalker::handle_read_asap(const request_type& handle_pkt, channel_type* ul, std::size_t level) -> std::optional<mshr_type>
+{
+  uint64_t penalty;
+
+  mshr_type fwd_mshr{handle_pkt, level};
+  std::tie(fwd_mshr.address, penalty) = this->vmem->get_pte_pa(handle_pkt.cpu, handle_pkt.address, level + 1);
+  fwd_mshr.v_address = handle_pkt.address;
+  fwd_mshr.is_asap = true;
+  if (handle_pkt.response_requested)
+    fwd_mshr.to_return = {&ul->returned};
 
   return step_translation(fwd_mshr);
 }
@@ -156,6 +174,11 @@ long PageTableWalker::operate()
   for (auto ul : upper_levels) {
     auto [rq_begin, rq_end] = champsim::get_span_p(std::cbegin(ul->RQ), std::cend(ul->RQ), tag_bw, [&next_steps, ul, this](const auto& pkt) {
       auto result = this->handle_read(pkt, ul);
+      // TODO[OSM] : ASAP
+      if(enable_asap) {
+        this->handle_read_asap(pkt, ul, 1);
+        this->handle_read_asap(pkt, ul, 0);
+      }
       if (result.has_value())
         next_steps.push_back(*result);
       return result.has_value();
