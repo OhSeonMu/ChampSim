@@ -70,6 +70,16 @@ auto PageTableWalker::handle_read(const request_type& handle_pkt, channel_type* 
                walk_offset / PTE_BYTES, walk_init.level);
   }
 
+  // TODO[OSM] : ASAP
+  if(enable_asap) {
+    if (walk_init.level != 1) {
+      this->handle_read_asap(handle_pkt, ul, 1);
+    }
+    if (walk_init.level != 0) {
+      this->handle_read_asap(handle_pkt, ul, 0);
+    } 
+  }
+
   return step_translation(fwd_mshr);
 }
 
@@ -174,11 +184,6 @@ long PageTableWalker::operate()
   for (auto ul : upper_levels) {
     auto [rq_begin, rq_end] = champsim::get_span_p(std::cbegin(ul->RQ), std::cend(ul->RQ), tag_bw, [&next_steps, ul, this](const auto& pkt) {
       auto result = this->handle_read(pkt, ul);
-      // TODO[OSM] : ASAP
-      if(enable_asap) {
-        this->handle_read_asap(pkt, ul, 1);
-        this->handle_read_asap(pkt, ul, 0);
-      }
       if (result.has_value())
         next_steps.push_back(*result);
       return result.has_value();
