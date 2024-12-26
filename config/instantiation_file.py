@@ -170,6 +170,9 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             # TODO[OSM] : perfect tlb for PTW
             ('perfect_tlb', True): '.set_perfect_tlb()',
             ('perfect_tlb', False): '.reset_perfect_tlb()',
+            # TODO[OSM] : prefetch tlb
+            ('is_pb', True): '.set_is_pb()',
+            ('is_pb', False): '.reset_is_pb()',
         }
 
         yield from (v.format(**elem) for k,v in cache_builder_parts.items() if k in elem)

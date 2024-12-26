@@ -79,22 +79,30 @@ def l1d_path(cores, caches):
 def itlb_path(cores, caches):
     itlb_factors = (
         { 'set_factor': 16, 'queue_factor': 16, 'mshr_factor': 8, 'bandwidth_factor': 1 },
+        { 'set_factor': 64, 'mshr_factor': 8, 'bandwidth_factor': 0.5 },
+        # TODO[OSM] : prefetch tlb
         { 'set_factor': 64, 'mshr_factor': 8, 'bandwidth_factor': 0.5 }
     )
     itlb_members = (
         { '_defaults': 'champsim::defaults::default_itlb' },
-        { '_defaults': 'champsim::defaults::default_stlb' }
+        { '_defaults': 'champsim::defaults::default_stlb' },
+        # TODO[OSM] : prefetch tlb
+        { '_defaults': 'champsim::defaults::default_pb' }
     )
     yield from default_path(cores, caches, itlb_factors, itlb_members, 'ITLB')
 
 def dtlb_path(cores, caches):
     dtlb_factors = (
         { 'set_factor': 16, 'queue_factor': 16, 'mshr_factor': 8, 'bandwidth_factor': 1 },
+        { 'set_factor': 64, 'mshr_factor': 8, 'bandwidth_factor': 0.5 },
+        # TODO[OSM] : prefetch tlb
         { 'set_factor': 64, 'mshr_factor': 8, 'bandwidth_factor': 0.5 }
     )
     dtlb_members = (
         { '_defaults': 'champsim::defaults::default_dtlb' },
-        { '_defaults': 'champsim::defaults::default_stlb' }
+        { '_defaults': 'champsim::defaults::default_stlb' },
+        # TODO[OSM] : prefetch tlb
+        { '_defaults': 'champsim::defaults::default_pb' }
     )
     yield from default_path(cores, caches, dtlb_factors, dtlb_members, 'DTLB')
 

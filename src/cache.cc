@@ -86,6 +86,18 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 {
   cpu = fill_mshr.cpu;
 
+  // TODO[OSM] : prefetch tlb
+  if (this->is_pb & (!fill_mshr.prefetch_from_this)) {
+    // COLLECT STATS
+    sim_stats.total_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
+  
+    auto metadata_thru = fill_mshr.pf_metadata;
+    response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
+    for (auto ret : fill_mshr.to_return)
+      ret->push_back(response);
+    return true;
+  }
+
   // find victim
   auto [set_begin, set_end] = get_set_span(fill_mshr.address);
   auto way = std::find_if_not(set_begin, set_end, [](auto x) { return x.valid; });
@@ -622,7 +634,9 @@ int CACHE::prefetch_line(uint64_t pf_addr, bool fill_this_level, uint32_t prefet
   pf_packet.pf_metadata = prefetch_metadata;
   pf_packet.cpu = cpu;
   pf_packet.address = pf_addr;
-  pf_packet.v_address = virtual_prefetch ? pf_addr : 0;
+  // TODO[OSM] : prefetch tlb
+  // pf_packet.v_address = virtual_prefetch ? pf_addr : 0;
+  pf_packet.v_address = (virtual_prefetch | is_pb) ? pf_addr : 0;
   pf_packet.is_translated = !virtual_prefetch;
 
   internal_PQ.emplace_back(pf_packet, true, !fill_this_level);
@@ -655,7 +669,12 @@ void CACHE::finish_packet(const response_type& packet)
   // MSHR holds the most updated information about this request
   mshr_entry->data = packet.data;
   mshr_entry->pf_metadata = packet.pf_metadata;
-  mshr_entry->event_cycle = current_cycle + (warmup ? 0 : FILL_LATENCY);
+  // TODO[OSM] : prefetch tlb
+  // mshr_entry->event_cycle = current_cycle + (warmup ? 0 : FILL_LATENCY);
+  if (this->is_pb) 
+     mshr_entry->event_cycle = current_cycle + (warmup | (!mshr_entry->prefetch_from_this) ? 0 : FILL_LATENCY);
+  else
+     mshr_entry->event_cycle = current_cycle + (warmup ? 0 : FILL_LATENCY);
 
   if constexpr (champsim::debug_print) {
     fmt::print("[{}_MSHR] {} instr_id: {} address: {:#x} data: {:#x} type: {} to_finish: {} event: {} current: {}\n", NAME, __func__, mshr_entry->instr_id,
@@ -689,7 +708,9 @@ void CACHE::finish_translation(const response_type& packet)
 
   // Find all packets that match the page of the returned packet
   for (auto& entry : inflight_tag_check) {
-    if ((entry.v_address >> LOG2_PAGE_SIZE) == (packet.v_address >> LOG2_PAGE_SIZE)) {
+    // TODO[OSM] : prefetch tlb
+    // if ((entry.v_address >> LOG2_PAGE_SIZE) == (packet.v_address >> LOG2_PAGE_SIZE)) {
+    if ((entry.v_address >> LOG2_PAGE_SIZE) == (packet.v_address >> LOG2_PAGE_SIZE) && (entry.is_translated == false)) {
       mark_translated(entry);
     }
   }

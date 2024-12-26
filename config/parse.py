@@ -75,7 +75,9 @@ def normalize_config(config_file):
     core_keys_to_copy = ('frequency', 'ifetch_buffer_size', 'decode_buffer_size', 'dispatch_buffer_size', 'rob_size', 'lq_size', 'sq_size', 'fetch_width', 'decode_width', 'dispatch_width', 'execute_width', 'lq_width', 'sq_width', 'retire_width', 'mispredict_penalty', 'scheduler_size', 'decode_latency', 'dispatch_latency', 'schedule_latency', 'execute_latency', 'branch_predictor', 'btb', 'DIB')
     cores = [util.chain(cpu, util.subdict(config_file, core_keys_to_copy), {'name': 'cpu'+str(i), '_index': i}) for i,cpu in enumerate(cores)]
 
-    pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB')
+    # TODO[OSM] : prefetch tlb
+    # pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB')
+    pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB', 'PB')
     caches = util.combine_named(
             config_file.get('caches', []),
 
@@ -92,8 +94,12 @@ def normalize_config(config_file):
             (defaults.core_defaults(cpu, 'L1D', ll_name='L2C') for cpu in cores),
             (defaults.core_defaults(cpu, 'ITLB', ll_name='STLB') for cpu in cores),
             (defaults.core_defaults(cpu, 'DTLB', ll_name='STLB') for cpu in cores),
+            # TODO[OSM] : prefetch tlb
+            (defaults.core_defaults(cpu, 'STLB', ll_name='PB') for cpu in cores),
             ({**defaults.core_defaults(cpu, 'L2C'), 'lower_level': 'LLC'} for cpu in cores),
-            (defaults.core_defaults(cpu, 'STLB', ll_name='PTW') for cpu in cores)
+            # TODO[OSM] : prefetch tlb
+            # (defaults.core_defaults(cpu, 'STLB', ll_name='PTW') for cpu in cores)
+            (defaults.core_defaults(cpu, 'PB', ll_name='PTW') for cpu in cores)
             )
 
     ptws = util.combine_named(

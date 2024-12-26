@@ -196,6 +196,9 @@ public:
   const bool perfect_tlb = 0;
   VirtualMemory* vmem;   
 
+  // TODO[OSM] : prefetch tlb
+  const bool is_pb = 0;
+
   using stats_type = cache_stats;
 
   stats_type sim_stats, roi_stats;
@@ -345,6 +348,9 @@ public:
     bool m_perfect_tlb{};
     VirtualMemory* m_vmem{}; 
 
+    // TODO[OSM] : prefetch tlb
+    bool m_is_pb{};
+
     std::vector<CACHE::channel_type*> m_uls{};
     CACHE::channel_type* m_ll{};
     CACHE::channel_type* m_lt{nullptr};
@@ -359,7 +365,8 @@ public:
           m_va_pref(other.m_va_pref), m_pref_act_mask(other.m_pref_act_mask), m_uls(other.m_uls), m_ll(other.m_ll), m_lt(other.m_lt),
           // TODO[OSM] : perfect cache for PTW
           // TODO[OSM] : perfect tlb for PTW
-	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem)
+    	  // TODO[OSM] : prefetch tlb
+	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem), m_is_pb(other.m_is_pb)
     {
     }
 
@@ -486,6 +493,18 @@ public:
       m_vmem = vmem_;
       return *this;
     }
+    // TODO[OSM] : prefetch tlb
+    self_type& set_is_pb()
+    {
+      m_is_pb = true;
+      return *this;
+    }
+    // TODO[OSM] : prefetch tlb
+    self_type& reset_is_pb()
+    {
+      m_is_pb = false;
+      return *this;
+    }
     template <typename... Elems>
     self_type& prefetch_activate(Elems... pref_act_elems)
     {
@@ -534,7 +553,8 @@ public:
         match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),
         // TODO[OSM] : perfect cache for PTW
 	// TODO[OSM] : perfect tlb for PTW
-        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem),
+        // TODO[OSM] : prefetch tlb
+        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem), is_pb(b.m_is_pb), 
         module_pimpl(std::make_unique<module_model<P_FLAG, R_FLAG>>(this))
   {
   }
