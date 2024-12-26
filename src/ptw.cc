@@ -92,6 +92,7 @@ auto PageTableWalker::handle_read_asap(const request_type& handle_pkt, channel_t
   std::tie(fwd_mshr.address, penalty) = this->vmem->get_pte_pa(handle_pkt.cpu, handle_pkt.address, level + 1);
   fwd_mshr.v_address = handle_pkt.address;
   fwd_mshr.is_asap = true;
+  fwd_mshr.pf_metadata = 1;
   if (handle_pkt.response_requested)
     fwd_mshr.to_return = {&ul->returned};
 
@@ -128,17 +129,18 @@ auto PageTableWalker::step_translation(const mshr_type& source) -> std::optional
   packet.asid[1] = source.asid[1];
   packet.is_translated = true;
   // TODO[OSM] : To track hit/miss in cache 
+  // TODO[OSM] : prefetch TLB 
   // packet.type = access_type::TRANSLATION;
   if(source.translation_level == 4)
-	  packet.type = access_type::L5_TRANSLATION;
+	  packet.type = source.pf_metadata ? access_type::PREFETCH : access_type::L5_TRANSLATION;
   if(source.translation_level == 3) 
-	  packet.type = access_type::L4_TRANSLATION;
+	  packet.type = source.pf_metadata ? access_type::PREFETCH : access_type::L5_TRANSLATION;
   if(source.translation_level == 2) 
-	  packet.type = access_type::L3_TRANSLATION;
+	  packet.type = source.pf_metadata ? access_type::PREFETCH : access_type::L5_TRANSLATION;
   if(source.translation_level == 1) 
-	  packet.type = access_type::L2_TRANSLATION;
+	  packet.type = source.pf_metadata ? access_type::PREFETCH : access_type::L5_TRANSLATION;
   if(source.translation_level == 0) 
-	  packet.type = access_type::L1_TRANSLATION;
+	  packet.type = source.pf_metadata ? access_type::PREFETCH : access_type::L5_TRANSLATION;
 
   bool success = lower_level->add_rq(packet);
 
