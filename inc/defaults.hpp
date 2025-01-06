@@ -211,8 +211,8 @@ const auto default_stlb = CACHE::Builder{}
 // TODO[OSM] : prefetch tlb
 const auto default_pb = CACHE::Builder{}
                               .sets(1)
-                              .ways(16)
-                              .pq_size(0)
+                              .ways(64)
+                              .pq_size(8)
                               .mshr_size(16)
                               .hit_latency(2)
                               .fill_latency(1)
@@ -226,7 +226,7 @@ const auto default_pb = CACHE::Builder{}
 			      // TODO[OSM] : perfect tlb for PTW
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
-			      .reset_is_pb()
+			      .set_is_pb()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD)
 			      // TODO[OSM] : perfect cache for PTW
