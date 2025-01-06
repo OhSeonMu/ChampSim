@@ -62,6 +62,10 @@ struct cache_stats {
 
   double avg_miss_latency = 0;
   uint64_t total_miss_latency = 0;
+
+  // TODO[OSM] : cache miss latency in not prefetch 
+  double avg_not_prefetch_miss_latency = 0;
+  uint64_t total_not_prefetch_miss_latency = 0;
 };
 
 class CACHE : public champsim::operable

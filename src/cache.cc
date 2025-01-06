@@ -90,6 +90,10 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
   if (this->is_pb & (!fill_mshr.prefetch_from_this)) {
     // COLLECT STATS
     sim_stats.total_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
+
+    // TODO[OSM] : cache miss latency in not prefetch
+    if (fill_mshr.type != access_type::PREFETCH)
+	    sim_stats.total_not_prefetch_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
   
     auto metadata_thru = fill_mshr.pf_metadata;
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
@@ -170,6 +174,10 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
   if (success) {
     // COLLECT STATS
     sim_stats.total_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
+
+    // TODO[OSM] : cache miss latency in not prefetch
+    if (fill_mshr.type != access_type::PREFETCH)
+	    sim_stats.total_not_prefetch_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
 
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
     for (auto ret : fill_mshr.to_return)
@@ -313,6 +321,13 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 
     }
   }
+  // TODO[OSM] : perfect cache for PTW After 
+  /*
+  else {
+    if (this->perfect_cache || this->perfect_tlb) 
+      return this->test_hit(handle_pkt);
+  }
+  */
 
   return hit;
 }
@@ -342,7 +357,9 @@ bool CACHE::test_hit(const tag_lookup_type& handle_pkt)
 	  if (this->perfect_tlb)
 		  std::tie(to_allocate.data, penalty) = this->vmem->va_to_pa(to_allocate.cpu, to_allocate.v_address);
 	  
+	  // TODO[OSM] : perfect tlb for PTW After
 	  test_fill(to_allocate);
+	  // return test_fill(to_allocate);
   }
 
   return hit;
@@ -459,7 +476,7 @@ bool CACHE::handle_write(const tag_lookup_type& handle_pkt)
 template <bool UpdateRequest>
 auto CACHE::initiate_tag_check(champsim::channel* ul)
 {
-  // TODO[OSM] : perfect cache for PTW
+  // TODO[OSM] : perfect cache for PTW Before
   // return [cycle = current_cycle + (warmup ? 0 : HIT_LATENCY), ul](const auto& entry) {
   return [cycle = current_cycle + (warmup ? 0 : HIT_LATENCY), ul, this](const auto& entry) {
     CACHE::tag_lookup_type retval{entry};
@@ -475,7 +492,7 @@ auto CACHE::initiate_tag_check(champsim::channel* ul)
                  retval.v_address, access_type_names.at(champsim::to_underlying(retval.type)), !std::empty(retval.to_return), retval.event_cycle);
     }
 
-    // TODO[OSM] : perfect cache for PTW
+    // TODO[OSM] : perfect cache for PTW Before
     if (this->perfect_cache || this->perfect_tlb)
       this->test_hit(retval);
 
@@ -861,6 +878,9 @@ void CACHE::begin_phase()
 void CACHE::end_phase(unsigned finished_cpu)
 {
   auto total_miss = 0ull;
+  // TODO[OSM] : cache miss latency in not prefetch
+  auto total_not_prefetch_miss = 0ull;
+  auto prefetch_miss = 0ull;
   // TODO[OSM] : To track hit/miss in cache
   // for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
   for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::L5_TRANSLATION, access_type::L4_TRANSLATION, access_type::L3_TRANSLATION, access_type::L2_TRANSLATION, access_type::L1_TRANSLATION}) {
@@ -871,6 +891,14 @@ void CACHE::end_phase(unsigned finished_cpu)
 
   roi_stats.total_miss_latency = sim_stats.total_miss_latency;
   roi_stats.avg_miss_latency = std::ceil(roi_stats.total_miss_latency) / std::ceil(total_miss);
+
+  // TODO[OSM] : cache miss latency in not prefetch
+  prefetch_miss = std::accumulate(std::begin(sim_stats.misses[champsim::to_underlying(access_type::PREFETCH)]), std::end(sim_stats.misses[champsim::to_underlying(access_type::PREFETCH)]), prefetch_miss);
+  total_not_prefetch_miss = total_miss - prefetch_miss;
+  sim_stats.avg_not_prefetch_miss_latency = std::ceil(sim_stats.total_not_prefetch_miss_latency) / std::ceil(total_not_prefetch_miss);
+
+  roi_stats.total_not_prefetch_miss_latency = sim_stats.total_not_prefetch_miss_latency;
+  roi_stats.avg_not_prefetch_miss_latency = std::ceil(roi_stats.total_not_prefetch_miss_latency) / std::ceil(total_not_prefetch_miss);
 
   // TODO[OSM] : To track hit/miss in cache
   // for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {

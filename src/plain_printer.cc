@@ -87,6 +87,8 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
 	       stats.pf_l1_useful);
 
     fmt::print(stream, "{} AVERAGE MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_miss_latency);
+    // TODO[OSM] : cache miss latency in not prefetch
+    fmt::print(stream, "{} AVERAGE NOT PREFETCH MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_not_prefetch_miss_latency);
   }
 }
 
@@ -169,6 +171,22 @@ void champsim::plain_printer_csv::print(DRAM_CHANNEL::stats_type stats) {
 	return;
 }
 
+// TODO[OSM] : cache miss latency in not prefetch
+void champsim::plain_printer_csv::print_latency(CACHE::stats_type stats)
+{
+  for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
+    fmt::print(stream, "{},{},{}\n", 
+		    stats.name, 
+		    stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency);
+    /*
+    fmt::print(stream, "{},{},{},{},{}\n", 
+		    stats.name, 
+		    stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency, 
+		    stats.total_miss_latency, stats.total_not_prefetch_miss_latency);
+    */
+  }
+}
+
 // TODO[OSM] : For Prefetcher hit in PTW
 void champsim::plain_printer_csv::print_prefetcher(CACHE::stats_type stats)
 {
@@ -182,6 +200,18 @@ void champsim::plain_printer_csv::print_prefetcher(CACHE::stats_type stats)
 // TODO[OSM] : To track hit/miss in cache
 void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 {
+  // TODO[OSM] : cache miss latency in not prefetch
+  fmt::print(stream, "\n=== {} LATENCY CSV ===\n", stats.name);
+  fmt::print(stream, "CACHE,AVG_MISS_LATENCY,NOT_PREFETCH_AVG_MISS_LATENCY\n");
+  // fmt::print(stream, "CACHE,AVG_MISS_LATENCY,NOT_PREFETCH_AVG_MISS_LATENCY,TOT_MISS_LATENCY,NOT_PREFETCH_TOT_MISS_LATENCY\n");
+  if (NUM_CPUS > 1) {
+    for (const auto& stat : stats.sim_cache_stats)
+      print_latency(stat);
+  }
+  
+  for (const auto& stat : stats.roi_cache_stats)
+    print_latency(stat);
+
   // TODO[OSM] : For Prefetcher hit in PTW
   fmt::print(stream, "\n=== {} PREFETCH CSV ===\n", stats.name);
   fmt::print(stream, "CACHE,REQUESTED,ISSUED,USEFUL,USELESS,L5_USEFUL,L4_USEFUL,L3_USEFUL,L2_USEFUL,L1_USEFUL\n");

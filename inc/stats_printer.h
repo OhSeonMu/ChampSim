@@ -71,6 +71,16 @@ class plain_printer_csv
       print_prefetcher(stats);
   }
 
+  // TODO[OSM] : cache miss latency in not prefetch 
+  void print_latency(CACHE::stats_type);
+  
+  template <typename T>
+  void print_latency(std::vector<T> stats_list)
+  {
+    for (auto& stats : stats_list)
+      print_latency(stats);
+  }
+
 public:
   plain_printer_csv(std::ostream& str) : stream(str) {}
   
@@ -80,6 +90,10 @@ public:
   // TODO[OSM] : For Prefetcher hit in PTW
   void print_prefetcher(phase_stats& stats);
   void print_prefetcher(std::vector<phase_stats>& stats);
+  
+  // TODO[OSM] : cache miss latency in not prefetch 
+  void print_latency(phase_stats& stats);
+  void print_latency(std::vector<phase_stats>& stats);
 };
 
 class json_printer
