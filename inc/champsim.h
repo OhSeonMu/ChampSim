@@ -18,11 +18,9 @@
 #define CHAMPSIM_H
 
 // TODO[OSM] : for debugging
-/*
-#ifndef DEBUG_PRINT
-#define DEBUG_PRINT
+#ifndef DEBUG_PRINT_2
+#define DEBUG_PRINT_2
 #endif
-*/
 
 #include <cstdint>
 #include <exception>
@@ -38,6 +36,12 @@ struct deadlock : public std::exception {
 constexpr bool debug_print = true;
 #else
 constexpr bool debug_print = false;
+#endif
+
+#ifdef DEBUG_PRINT_2
+constexpr bool debug_print_2 = true;
+#else
+constexpr bool debug_print_2 = false;
 #endif
 } // namespace champsim
 

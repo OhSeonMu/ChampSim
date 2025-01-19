@@ -32,6 +32,33 @@ struct dram_stats {
   uint64_t dbus_cycle_congested = 0, dbus_count_congested = 0;
 
   unsigned WQ_ROW_BUFFER_HIT = 0, WQ_ROW_BUFFER_MISS = 0, RQ_ROW_BUFFER_HIT = 0, RQ_ROW_BUFFER_MISS = 0, WQ_FULL = 0;
+  
+  // TODO[OSM] : Breakdown latency
+  unsigned RQ_FULL = 0;
+
+  // TODO[OSM] : Breakdown latency
+  uint64_t total_access;
+
+  double avg_initiate_request_latency = 0;
+  double avg_bank_request_latency = 0 ;
+  double avg_active_request_latency = 0;
+
+  uint64_t total_initiate_request_latency = 0;
+  uint64_t total_bank_request_latency = 0 ;
+  uint64_t total_active_request_latency = 0;
+  
+  uint64_t total_ret_access;
+  
+  double avg_ret_initiate_request_latency = 0;
+  double avg_ret_bank_request_latency = 0 ;
+  double avg_ret_active_request_latency = 0;
+
+  uint64_t total_ret_initiate_request_latency = 0;
+  uint64_t total_ret_bank_request_latency = 0 ;
+  uint64_t total_ret_active_request_latency = 0;
+  
+  // TODO[OSM] : Breakdown latency
+  unsigned bank_access_success = 0, bank_access_fail = 0;
 };
 
 struct DRAM_CHANNEL {
@@ -39,6 +66,9 @@ struct DRAM_CHANNEL {
   struct request_type {
     bool scheduled = false;
     bool forward_checked = false;
+    
+    // TODO[OSM] : Prefetch TLB
+    bool scheduled_checked = false;
 
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
@@ -51,6 +81,11 @@ struct DRAM_CHANNEL {
 
     std::vector<std::reference_wrapper<ooo_model_instr>> instr_depend_on_me{};
     std::vector<std::deque<response_type>*> to_return{};
+
+    // TODO[OSM] : Breakdown latency  
+    uint64_t initiate_request_cycle = 0;
+    uint64_t bank_request_cycle = 0 ;
+    uint64_t active_request_cycle = 0;
 
     explicit request_type(typename champsim::channel::request_type);
   };
@@ -78,7 +113,9 @@ struct DRAM_CHANNEL {
   using stats_type = dram_stats;
   stats_type roi_stats, sim_stats;
 
-  void check_collision();
+  // TODO[OSM] : Breakdown latency
+  // void check_collision();
+  void check_collision(uint64_t cycle);
   void print_deadlock();
 };
 

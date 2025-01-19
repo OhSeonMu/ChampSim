@@ -25,6 +25,8 @@
 #include "instruction.h"
 #include "util/span.h"
 #include <fmt/core.h>
+// TODO[OSM] : Breakdown latency
+#include <algorithm>
 
 uint64_t cycles(double time, int io_freq)
 {
@@ -52,8 +54,26 @@ long MEMORY_CONTROLLER::operate()
       for (auto& entry : channel.RQ) {
         if (entry.has_value()) {
           response_type response{entry->address, entry->v_address, entry->data, entry->pf_metadata, entry->instr_depend_on_me};
-          for (auto ret : entry.value().to_return)
+	  
+	  // TODO[OSM] : Breakdonw latency
+	  channel.sim_stats.total_access++;
+          channel.sim_stats.total_initiate_request_latency +=
+	    entry->bank_request_cycle - entry->initiate_request_cycle;
+          channel.sim_stats.total_bank_request_latency += 
+      	    entry->active_request_cycle - entry->bank_request_cycle;
+          channel.sim_stats.total_active_request_latency += 
+      	    current_cycle - entry->active_request_cycle;
+
+          for (auto ret : entry.value().to_return) {
             ret->push_back(response);
+	    channel.sim_stats.total_ret_access++;
+            channel.sim_stats.total_ret_initiate_request_latency +=
+	      entry->bank_request_cycle - entry->initiate_request_cycle;
+            channel.sim_stats.total_ret_bank_request_latency += 
+      	      entry->active_request_cycle - entry->bank_request_cycle;
+            channel.sim_stats.total_ret_active_request_latency += 
+      	      current_cycle - entry->active_request_cycle;
+	  }
 
           ++progress;
           entry.reset();
@@ -69,15 +89,35 @@ long MEMORY_CONTROLLER::operate()
     }
 
     // Check for forwarding
-    channel.check_collision();
+    // TODO[OSM] : Breakdown latency
+    // channel.check_collision();
+    channel.check_collision(current_cycle);
 
     // Finish request
     if (channel.active_request != std::end(channel.bank_request) && channel.active_request->event_cycle <= current_cycle) {
       response_type response{channel.active_request->pkt->value().address, channel.active_request->pkt->value().v_address,
                              channel.active_request->pkt->value().data, channel.active_request->pkt->value().pf_metadata,
                              channel.active_request->pkt->value().instr_depend_on_me};
-      for (auto ret : channel.active_request->pkt->value().to_return)
+      // TODO[OSM] : Breakdown latency
+      // calculate
+      channel.sim_stats.total_access++;
+      channel.sim_stats.total_initiate_request_latency +=
+      	channel.active_request->pkt->value().bank_request_cycle - channel.active_request->pkt->value().initiate_request_cycle;
+      channel.sim_stats.total_bank_request_latency += 
+      	channel.active_request->pkt->value().active_request_cycle - channel.active_request->pkt->value().bank_request_cycle;
+      channel.sim_stats.total_active_request_latency += 
+      	current_cycle - channel.active_request->pkt->value().active_request_cycle;
+
+      for (auto ret : channel.active_request->pkt->value().to_return) {
         ret->push_back(response);
+        channel.sim_stats.total_ret_access++;
+        channel.sim_stats.total_ret_initiate_request_latency +=
+          channel.active_request->pkt->value().bank_request_cycle - channel.active_request->pkt->value().initiate_request_cycle;
+        channel.sim_stats.total_ret_bank_request_latency += 
+      	  channel.active_request->pkt->value().active_request_cycle - channel.active_request->pkt->value().bank_request_cycle;
+        channel.sim_stats.total_ret_active_request_latency += 
+      	  current_cycle - channel.active_request->pkt->value().active_request_cycle;
+      }
 
       channel.active_request->valid = false;
 
@@ -105,6 +145,9 @@ long MEMORY_CONTROLLER::operate()
           it->valid = false;
           it->pkt->value().scheduled = false;
           it->pkt->value().event_cycle = current_cycle;
+	  // TODO[OMS] : Breakdown latency
+	  it->pkt->value().bank_request_cycle = it->pkt->value().initiate_request_cycle + 1;
+	  it->pkt->value().active_request_cycle = it->pkt->value().initiate_request_cycle + 2;
         }
       }
 
@@ -127,6 +170,8 @@ long MEMORY_CONTROLLER::operate()
         // Put this request on the data bus
         channel.active_request = iter_next_process;
         channel.active_request->event_cycle = current_cycle + DRAM_DBUS_RETURN_TIME;
+	// TODO[OSM] : Breakdown latency
+	channel.active_request->pkt->value().active_request_cycle = current_cycle;
 
         if (iter_next_process->row_buffer_hit)
           if (channel.write_mode)
@@ -150,36 +195,74 @@ long MEMORY_CONTROLLER::operate()
     }
 
     // Look for queued packets that have not been scheduled
+    // TODO[OSM] : change for dram latency 
+    /*
     auto next_schedule = [](const auto& lhs, const auto& rhs) {
       return !(rhs.has_value() && !rhs.value().scheduled) || ((lhs.has_value() && !lhs.value().scheduled) && lhs.value().event_cycle < rhs.value().event_cycle);
     };
+    */
+    auto next_schedule = [](const auto& lhs, const auto& rhs) {
+      return !(rhs.has_value() && !rhs.value().scheduled && !rhs.value().scheduled_checked) || ((lhs.has_value() && !lhs.value().scheduled && !lhs.value().scheduled_checked) && lhs.value().event_cycle < rhs.value().event_cycle);
+    };
+
     DRAM_CHANNEL::queue_type::iterator iter_next_schedule;
-    if (channel.write_mode)
-      iter_next_schedule = std::min_element(std::begin(channel.WQ), std::end(channel.WQ), next_schedule);
-    else
-      iter_next_schedule = std::min_element(std::begin(channel.RQ), std::end(channel.RQ), next_schedule);
+    
+    // TODO[OSM] : change for dram latency 
+    bool insert_bank = true;
+    while (insert_bank) {
+      insert_bank = false;
+      if (channel.write_mode)
+        iter_next_schedule = std::min_element(std::begin(channel.WQ), std::end(channel.WQ), next_schedule);
+      else
+        iter_next_schedule = std::min_element(std::begin(channel.RQ), std::end(channel.RQ), next_schedule);
 
-    if (iter_next_schedule->has_value() && iter_next_schedule->value().event_cycle <= current_cycle) {
-      auto op_rank = dram_get_rank(iter_next_schedule->value().address);
-      auto op_bank = dram_get_bank(iter_next_schedule->value().address);
-      auto op_row = dram_get_row(iter_next_schedule->value().address);
+      if (iter_next_schedule->has_value() && iter_next_schedule->value().event_cycle <= current_cycle) {
+        auto op_rank = dram_get_rank(iter_next_schedule->value().address);
+        auto op_bank = dram_get_bank(iter_next_schedule->value().address);
+        auto op_row = dram_get_row(iter_next_schedule->value().address);
 
-      auto op_idx = op_rank * DRAM_BANKS + op_bank;
+        auto op_idx = op_rank * DRAM_BANKS + op_bank;
 
-      if (!channel.bank_request[op_idx].valid) {
-        bool row_buffer_hit = (channel.bank_request[op_idx].open_row == op_row);
+        if (!channel.bank_request[op_idx].valid) {
+          bool row_buffer_hit = (channel.bank_request[op_idx].open_row == op_row);
 
-        // this bank is now busy
-        channel.bank_request[op_idx] = {true, row_buffer_hit, op_row, current_cycle + tCAS + (row_buffer_hit ? 0 : tRP + tRCD), iter_next_schedule};
+          // TODO[OSM] : change for dram latency 
+  	  // row_buffer_hit = 1;
 
-        iter_next_schedule->value().scheduled = true;
-        iter_next_schedule->value().event_cycle = std::numeric_limits<uint64_t>::max();
+          // this bank is now busy
+          channel.bank_request[op_idx] = {true, row_buffer_hit, op_row, current_cycle + tCAS + (row_buffer_hit ? 0 : tRP + tRCD), iter_next_schedule};
 
-        ++progress;
+          iter_next_schedule->value().scheduled = true;
+          iter_next_schedule->value().event_cycle = std::numeric_limits<uint64_t>::max();
+	  // TODO[OMS] : Breakdown latency
+          iter_next_schedule->value().bank_request_cycle = current_cycle;
+          iter_next_schedule->value().active_request_cycle = current_cycle + 1;
+          ++channel.sim_stats.bank_access_success;
+
+          ++progress;
+        } else {
+	  // TODO[OMS] : Breakdown latency
+          ++channel.sim_stats.bank_access_fail;
+    
+          // TODO[OSM] : change for dram latency 
+	  if (!(iter_next_schedule->value().scheduled_checked))
+	    insert_bank = true;
+	  iter_next_schedule->value().scheduled_checked = true;
+        }
       }
+    } 
+
+    // TODO[OSM] : change for dram latency 
+    if (channel.write_mode) {
+      std::for_each(std::begin(channel.WQ), std::end(channel.WQ), [](auto& req) {
+        if (req.has_value())
+	  req.value().scheduled_checked = false;});
+    } else {
+      std::for_each(std::begin(channel.RQ), std::end(channel.RQ), [](auto& req) {
+        if (req.has_value())
+	  req.value().scheduled_checked = false;});
     }
   }
-
   return progress;
 }
 
@@ -213,11 +296,22 @@ void MEMORY_CONTROLLER::begin_phase()
 void MEMORY_CONTROLLER::end_phase(unsigned)
 {
   for (auto& chan : channels) {
+    // TODO[OSM] : Breakdown latency
+    chan.sim_stats.avg_initiate_request_latency = std::ceil(chan.sim_stats.total_initiate_request_latency) / std::ceil(chan.sim_stats.total_access);
+    chan.sim_stats.avg_bank_request_latency = std::ceil(chan.sim_stats.total_bank_request_latency) / std::ceil(chan.sim_stats.total_access);
+    chan.sim_stats.avg_active_request_latency = std::ceil(chan.sim_stats.total_active_request_latency) / std::ceil(chan.sim_stats.total_access);
+
+    chan.sim_stats.avg_ret_initiate_request_latency = std::ceil(chan.sim_stats.total_ret_initiate_request_latency) / std::ceil(chan.sim_stats.total_ret_access);
+    chan.sim_stats.avg_ret_bank_request_latency = std::ceil(chan.sim_stats.total_ret_bank_request_latency) / std::ceil(chan.sim_stats.total_ret_access);
+    chan.sim_stats.avg_ret_active_request_latency = std::ceil(chan.sim_stats.total_ret_active_request_latency) / std::ceil(chan.sim_stats.total_ret_access);
+
     chan.roi_stats = chan.sim_stats;
   }
 }
 
-void DRAM_CHANNEL::check_collision()
+// TODO[OSM] : Breakdown latency
+// void DRAM_CHANNEL::check_collision()
+void DRAM_CHANNEL::check_collision(uint64_t cycle)
 {
   for (auto wq_it = std::begin(WQ); wq_it != std::end(WQ); ++wq_it) {
     if (wq_it->has_value() && !wq_it->value().forward_checked) {
@@ -243,8 +337,19 @@ void DRAM_CHANNEL::check_collision()
         response_type response{rq_it->value().address, rq_it->value().v_address, rq_it->value().data, rq_it->value().pf_metadata,
                                rq_it->value().instr_depend_on_me};
         response.data = wq_it->value().data;
-        for (auto ret : rq_it->value().to_return)
+	// TODO[OSM] : Breakdonw latency
+	this->sim_stats.total_access++;
+        this->sim_stats.total_initiate_request_latency += cycle - rq_it->value().initiate_request_cycle;
+        this->sim_stats.total_bank_request_latency += 0;
+        this->sim_stats.total_active_request_latency += 0;
+
+        for (auto ret : rq_it->value().to_return) {
           ret->push_back(response);
+	  this->sim_stats.total_ret_access++;
+          this->sim_stats.total_ret_initiate_request_latency += cycle - rq_it->value().initiate_request_cycle;
+          this->sim_stats.total_ret_bank_request_latency += 0;
+          this->sim_stats.total_ret_active_request_latency += 0;
+	}
 
         rq_it->reset();
       } else if (auto found = std::find_if(std::begin(RQ), rq_it, checker); found != rq_it) {
@@ -306,12 +411,19 @@ bool MEMORY_CONTROLLER::add_rq(const request_type& packet, champsim::channel* ul
     *rq_it = DRAM_CHANNEL::request_type{packet};
     rq_it->value().forward_checked = false;
     rq_it->value().event_cycle = current_cycle;
+    // TODO[OSM] : Breakdown latency
+    rq_it->value().initiate_request_cycle = current_cycle;
+    rq_it->value().bank_request_cycle = current_cycle + 1;
+    rq_it->value().active_request_cycle = current_cycle + 1;
+
     if (packet.response_requested)
       rq_it->value().to_return = {&ul->returned};
 
     return true;
   }
 
+  // TODO[OSM] : Breakdown latency
+  ++channel.sim_stats.RQ_FULL;
   return false;
 }
 
@@ -325,6 +437,10 @@ bool MEMORY_CONTROLLER::add_wq(const request_type& packet)
     *wq_it = DRAM_CHANNEL::request_type{packet};
     wq_it->value().forward_checked = false;
     wq_it->value().event_cycle = current_cycle;
+    // TODO[OSM] : Breakdown latency
+    wq_it->value().initiate_request_cycle = current_cycle;
+    wq_it->value().bank_request_cycle = current_cycle + 1;
+    wq_it->value().active_request_cycle = current_cycle + 2;
 
     return true;
   }

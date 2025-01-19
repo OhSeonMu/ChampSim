@@ -46,6 +46,8 @@ struct cache_stats {
   uint64_t pf_requested = 0;
   uint64_t pf_issued = 0;
   uint64_t pf_useful = 0;
+  // TODO[OSM] : For Prefetcher hit 
+  uint64_t pf_useful_on_going = 0;
   
   // TODO[OSM] : For Prefetcher hit in PTW
   uint64_t pf_l5_useful = 0;
@@ -66,6 +68,15 @@ struct cache_stats {
   // TODO[OSM] : cache miss latency in not prefetch 
   double avg_not_prefetch_miss_latency = 0;
   uint64_t total_not_prefetch_miss_latency = 0;
+  
+  // TODO[OSM] : Breakdown latency
+  double avg_initiate_tag_check_latency = 0;
+  double avg_handle_miss_latency = 0;
+  double avg_finish_packet_latency = 0;
+  
+  uint64_t total_initiate_tag_check_latency = 0;
+  uint64_t total_handle_miss_latency = 0;
+  uint64_t total_finish_packet_latency = 0;
 };
 
 class CACHE : public champsim::operable
@@ -97,6 +108,8 @@ class CACHE : public champsim::operable
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
     uint64_t event_cycle = std::numeric_limits<uint64_t>::max();
+    // TODO[OSM] : Breakdown latency
+    uint64_t initiate_tag_check_cycle = 0;		// current
 
     std::vector<std::reference_wrapper<ooo_model_instr>> instr_depend_on_me{};
     std::vector<std::deque<response_type>*> to_return{};
@@ -117,11 +130,17 @@ class CACHE : public champsim::operable
 
     access_type type;
     bool prefetch_from_this;
+    // TODO[OSM] : For Prefetcher hit 
+    bool prefetch_success = 0;
 
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
     uint64_t event_cycle = std::numeric_limits<uint64_t>::max();
     uint64_t cycle_enqueued;
+    // TODO[OSM] : Breakdown latency
+    uint64_t initiate_tag_check_cycle = 0;		// by tag_lookup_type	-		-
+    uint64_t handle_miss_cycle = 0;			// current_cycle	-		-
+    uint64_t finish_packet_cycle = 0;			// current_cycle	current_cycle	-
 
     std::vector<std::reference_wrapper<ooo_model_instr>> instr_depend_on_me{};
     std::vector<std::deque<response_type>*> to_return{};

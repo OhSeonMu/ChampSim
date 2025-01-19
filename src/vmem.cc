@@ -102,8 +102,10 @@ std::pair<uint64_t, uint64_t> VirtualMemory::get_pte_pa(uint32_t cpu_num, uint64
 // TODO[OSM] : prefetch tlb
 bool VirtualMemory::check_va_to_pa(uint32_t cpu_num, uint64_t vaddr)
 {
+  // Find
   if (vpage_to_ppage_map.find({cpu_num, vaddr >> LOG2_PAGE_SIZE}) != vpage_to_ppage_map.end()) 
     return true;
 
+  // Not Fine
   return false;
 }

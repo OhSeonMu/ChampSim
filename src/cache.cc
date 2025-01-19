@@ -94,6 +94,11 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     // TODO[OSM] : cache miss latency in not prefetch
     if (fill_mshr.type != access_type::PREFETCH)
 	    sim_stats.total_not_prefetch_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
+    
+    // TODO[OSM] : Breakdown latency
+    sim_stats.total_initiate_tag_check_latency += (fill_mshr.handle_miss_cycle) - (fill_mshr.initiate_tag_check_cycle);
+    sim_stats.total_handle_miss_latency += (fill_mshr.finish_packet_cycle) - (fill_mshr.handle_miss_cycle + 1); 
+    sim_stats.total_finish_packet_latency += current_cycle - (fill_mshr.finish_packet_cycle);
   
     auto metadata_thru = fill_mshr.pf_metadata;
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
@@ -160,6 +165,9 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
                                     champsim::to_underlying(fill_mshr.type), false);
 
       way->pf_metadata = metadata_thru;
+      // TODO[OSM] : For Prefetcher hit
+      if (fill_mshr.prefetch_success)
+        way->prefetch = false;
     }
   } else {
     // Bypass
@@ -179,6 +187,11 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     if (fill_mshr.type != access_type::PREFETCH)
 	    sim_stats.total_not_prefetch_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
 
+    // TODO[OSM] : Breakdown latency
+    sim_stats.total_initiate_tag_check_latency += (fill_mshr.handle_miss_cycle) - (fill_mshr.initiate_tag_check_cycle);
+    sim_stats.total_handle_miss_latency += (fill_mshr.finish_packet_cycle) - (fill_mshr.handle_miss_cycle + 1); 
+    sim_stats.total_finish_packet_latency += current_cycle - (fill_mshr.finish_packet_cycle);
+    
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
     for (auto ret : fill_mshr.to_return)
       ret->push_back(response);
@@ -318,7 +331,6 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
         ++sim_stats.pf_l2_useful;
       if (handle_pkt.type == access_type::L1_TRANSLATION)
         ++sim_stats.pf_l1_useful;
-
     }
   }
   // TODO[OSM] : perfect cache for PTW After 
@@ -374,6 +386,10 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
   }
 
   mshr_type to_allocate{handle_pkt, current_cycle};
+  // TODO[OSM] : Breakdown latency
+  to_allocate.initiate_tag_check_cycle = handle_pkt.initiate_tag_check_cycle;
+  to_allocate.handle_miss_cycle = current_cycle;
+  // to_allocate.finish_packet_cycle = current_cycle;
 
   cpu = handle_pkt.cpu;
 
@@ -387,8 +403,14 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
   {
     if (mshr_entry->type == access_type::PREFETCH && handle_pkt.type != access_type::PREFETCH) {
       // Mark the prefetch as useful
-      if (mshr_entry->prefetch_from_this)
-        ++sim_stats.pf_useful;
+      if (mshr_entry->prefetch_from_this) {
+      	// TODO[OSM] : For Prefetcher hit
+        // ++sim_stats.pf_useful;
+	if(!mshr_entry->prefetch_success) {
+          ++sim_stats.pf_useful_on_going;
+          mshr_entry->prefetch_success = 1;
+        }
+      }
 
       // TODO[OSM] : For Prefetcher hit in PTW
       if (handle_pkt.type == access_type::L5_TRANSLATION)
@@ -481,6 +503,8 @@ auto CACHE::initiate_tag_check(champsim::channel* ul)
   return [cycle = current_cycle + (warmup ? 0 : HIT_LATENCY), ul, this](const auto& entry) {
     CACHE::tag_lookup_type retval{entry};
     retval.event_cycle = cycle;
+    // TODO[OSM] : Breakdown latency
+    retval.initiate_tag_check_cycle = this->current_cycle;
 
     if constexpr (UpdateRequest) {
       if (entry.response_requested)
@@ -692,6 +716,8 @@ void CACHE::finish_packet(const response_type& packet)
      mshr_entry->event_cycle = current_cycle + (warmup | (!mshr_entry->prefetch_from_this) ? 0 : FILL_LATENCY);
   else
      mshr_entry->event_cycle = current_cycle + (warmup ? 0 : FILL_LATENCY);
+  // TODO[OSM] : Breakdown latency
+  mshr_entry->finish_packet_cycle = current_cycle;
 
   if constexpr (champsim::debug_print) {
     fmt::print("[{}_MSHR] {} instr_id: {} address: {:#x} data: {:#x} type: {} to_finish: {} event: {} current: {}\n", NAME, __func__, mshr_entry->instr_id,
@@ -900,6 +926,19 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.total_not_prefetch_miss_latency = sim_stats.total_not_prefetch_miss_latency;
   roi_stats.avg_not_prefetch_miss_latency = std::ceil(roi_stats.total_not_prefetch_miss_latency) / std::ceil(total_not_prefetch_miss);
 
+  // TODO[OSM] : Breakdown latency
+  sim_stats.avg_initiate_tag_check_latency = std::ceil(sim_stats.total_initiate_tag_check_latency) / std::ceil(total_miss); 
+  sim_stats.avg_handle_miss_latency = std::ceil(sim_stats.total_handle_miss_latency) / std::ceil(total_miss); 
+  sim_stats.avg_finish_packet_latency = std::ceil(sim_stats.total_finish_packet_latency) / std::ceil(total_miss); 
+
+  roi_stats.total_initiate_tag_check_latency = sim_stats.total_initiate_tag_check_latency; 
+  roi_stats.total_handle_miss_latency = sim_stats.total_handle_miss_latency;
+  roi_stats.total_finish_packet_latency = sim_stats.total_finish_packet_latency;
+  
+  roi_stats.avg_initiate_tag_check_latency = std::ceil(roi_stats.total_initiate_tag_check_latency) / std::ceil(total_miss); 
+  roi_stats.avg_handle_miss_latency = std::ceil(roi_stats.total_handle_miss_latency) / std::ceil(total_miss); 
+  roi_stats.avg_finish_packet_latency = std::ceil(roi_stats.total_finish_packet_latency) / std::ceil(total_miss); 
+
   // TODO[OSM] : To track hit/miss in cache
   // for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
   for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::L5_TRANSLATION, access_type::L4_TRANSLATION, access_type::L3_TRANSLATION, access_type::L2_TRANSLATION, access_type::L1_TRANSLATION}) {
@@ -920,6 +959,9 @@ void CACHE::end_phase(unsigned finished_cpu)
 
   roi_stats.pf_useless = sim_stats.pf_useless;
   roi_stats.pf_fill = sim_stats.pf_fill;
+  
+  // TODO[OSM] : For Prefetcher hit
+  roi_stats.pf_useful_on_going = sim_stats.pf_useful_on_going;
 
   for (auto ul : upper_levels) {
     ul->roi_stats.RQ_ACCESS = ul->sim_stats.RQ_ACCESS;

@@ -95,7 +95,17 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
 void champsim::plain_printer::print(DRAM_CHANNEL::stats_type stats)
 {
   fmt::print(stream, "\n{} RQ ROW_BUFFER_HIT: {:10}\n  ROW_BUFFER_MISS: {:10}\n", stats.name, stats.RQ_ROW_BUFFER_HIT, stats.RQ_ROW_BUFFER_MISS);
-  if (stats.dbus_count_congested > 0) fmt::print(stream, " AVG DBUS CONGESTED CYCLE: {:.4g}\n", std::ceil(stats.dbus_cycle_congested) / std::ceil(stats.dbus_count_congested)); else fmt::print(stream, " AVG DBUS CONGESTED CYCLE: -\n"); fmt::print(stream, "WQ ROW_BUFFER_HIT: {:10}\n  ROW_BUFFER_MISS: {:10}\n  FULL: {:10}\n", stats.name, stats.WQ_ROW_BUFFER_HIT, stats.WQ_ROW_BUFFER_MISS, stats.WQ_FULL); } void champsim::plain_printer::print(champsim::phase_stats& stats) { fmt::print(stream, "=== {} ===\n", stats.name); 
+  if (stats.dbus_count_congested > 0) 
+    fmt::print(stream, " AVG DBUS CONGESTED CYCLE: {:.4g}\n", std::ceil(stats.dbus_cycle_congested) / std::ceil(stats.dbus_count_congested)); 
+  else 
+    fmt::print(stream, " AVG DBUS CONGESTED CYCLE: -\n"); 
+  
+  fmt::print(stream, "\n{} WQ ROW_BUFFER_HIT: {:10}\n  ROW_BUFFER_MISS: {:10}\n  FULL: {:10}\n", stats.name, stats.WQ_ROW_BUFFER_HIT, stats.WQ_ROW_BUFFER_MISS, stats.WQ_FULL); 
+}
+  
+void champsim::plain_printer::print(champsim::phase_stats& stats) { 
+  fmt::print(stream, "=== {} ===\n", stats.name); 
+  
   int i = 0;
   for (auto tn : stats.trace_names)
     fmt::print(stream, "CPU {} runs {}", i++, tn);
@@ -171,19 +181,51 @@ void champsim::plain_printer_csv::print(DRAM_CHANNEL::stats_type stats) {
 	return;
 }
 
+// TODO[OSM] : Row Buffer Affect
+void champsim::plain_printer_csv::print_dram(DRAM_CHANNEL::stats_type stats) {
+  fmt::print(stream, "{},{},{},{},{},{},", 
+	stats.RQ_ROW_BUFFER_HIT, stats.RQ_ROW_BUFFER_MISS, stats.WQ_ROW_BUFFER_HIT, 
+	stats.WQ_ROW_BUFFER_MISS, stats.RQ_FULL, stats.WQ_FULL); 
+
+  if (stats.dbus_count_congested > 0) 
+    fmt::print(stream, "{},{},{:.4g},{},{},{},{}\n", 
+	std::ceil(stats.dbus_cycle_congested),std::ceil(stats.dbus_count_congested),
+	std::ceil(stats.dbus_cycle_congested) / std::ceil(stats.dbus_count_congested), std::ceil(stats.bank_access_success), 
+	std::ceil(stats.bank_access_fail), std::ceil(stats.total_access), std::ceil(stats.total_ret_access)); 
+  else 
+    fmt::print(stream, "NaN,NaN,Nan,{},{},{},{}\n", std::ceil(stats.bank_access_success), 
+		    std::ceil(stats.bank_access_fail), std::ceil(stats.total_access), std::ceil(stats.total_ret_access)); 
+ }
+
 // TODO[OSM] : cache miss latency in not prefetch
 void champsim::plain_printer_csv::print_latency(CACHE::stats_type stats)
 {
   for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
+    /*
     fmt::print(stream, "{},{},{}\n", 
 		    stats.name, 
 		    stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency);
-    /*
-    fmt::print(stream, "{},{},{},{},{}\n", 
-		    stats.name, 
-		    stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency, 
-		    stats.total_miss_latency, stats.total_not_prefetch_miss_latency);
     */
+    fmt::print(stream, "{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{}\n", 
+		    stats.name, stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency, 
+		    stats.avg_initiate_tag_check_latency, stats.avg_handle_miss_latency, stats.avg_finish_packet_latency,
+		    stats.total_miss_latency);
+  }
+}
+
+// TODO[OSM] : Breakdown latency
+void champsim::plain_printer_csv::print_latency(DRAM_CHANNEL::stats_type stats)
+{
+  for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
+    fmt::print(stream, "{:.2f},{:.2f},{:.2f},{:.2f},{},{},{},{},{:.2f},{:.2f},{:.2f},{:.2f},{},{},{},{}\n", 
+		    stats.avg_initiate_request_latency + stats.avg_bank_request_latency + stats.avg_active_request_latency,
+		    stats.avg_initiate_request_latency, stats.avg_bank_request_latency, stats.avg_active_request_latency,
+		    stats.total_initiate_request_latency + stats.total_bank_request_latency + stats.total_active_request_latency,
+		    stats.total_initiate_request_latency, stats.total_bank_request_latency, stats.total_active_request_latency,
+		    stats.avg_ret_initiate_request_latency + stats.avg_ret_bank_request_latency + stats.avg_ret_active_request_latency,
+		    stats.avg_ret_initiate_request_latency, stats.avg_ret_bank_request_latency, stats.avg_ret_active_request_latency,
+		    stats.total_ret_initiate_request_latency + stats.total_ret_bank_request_latency + stats.total_ret_active_request_latency,
+		    stats.total_ret_initiate_request_latency, stats.total_ret_bank_request_latency, stats.total_ret_active_request_latency); 
   }
 }
 
@@ -191,8 +233,8 @@ void champsim::plain_printer_csv::print_latency(CACHE::stats_type stats)
 void champsim::plain_printer_csv::print_prefetcher(CACHE::stats_type stats)
 {
   for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
-    fmt::print(stream, "{},{},{},{},{},{},{},{},{},{}\n", 
-		    stats.name, stats.pf_requested, stats.pf_issued,stats.pf_useful, stats.pf_useless,
+    fmt::print(stream, "{},{},{},{},{},{},{},{},{},{},{}\n", 
+		    stats.name, stats.pf_requested, stats.pf_issued, stats.pf_useful, stats.pf_useful_on_going, stats.pf_useless,
 		    stats.pf_l5_useful, stats.pf_l4_useful, stats.pf_l3_useful, stats.pf_l2_useful, stats.pf_l1_useful);
   }
 }
@@ -200,10 +242,22 @@ void champsim::plain_printer_csv::print_prefetcher(CACHE::stats_type stats)
 // TODO[OSM] : To track hit/miss in cache
 void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 {
+  // TODO[OSM] : dram information
+  fmt::print(stream, "\n=== {} DARM STATE CSV ===\n", stats.name);
+  fmt::print(stream, "RQ_ROW_BUFFER_HIT,RQ_ROW_BUFFER_MISS,WQ_ROW_BUFFER_HIT,WQ_ROW_BUFFER_MISS,RQ_FULL,WQ_FULL,DBUS_CONGESTED_CYCLE,DBUS_CONGESTED_COUNT,AVG_DBUS_CONGESTED_CYCLE,BANK_ACCESS_SUCCESS,BANK_ACCESS_FAIL,TOTAL_ACCESS,TOTAL_RET_ACCESS\n");
+  for (const auto& stat : stats.roi_dram_stats)
+    print_dram(stat);
+
+  // TODO[OSM] : Breakdown latency  
+  fmt::print(stream, "\n=== {} AVG DARM LATENCY CSV ===\n", stats.name);
+  fmt::print(stream, "MISS,INIT_REQUEST,BANK_REQUEST,ACTIVE_REQUEST,TOT_MISS,TOT_INIT_REQUEST,TOT_BANK_REQUEST,TOT_ACTIVE_REQUEST,RET_MISS,RET_INIT_REQUEST,RET_BANK_REQUEST,RET_ACTIVE_REQUEST,TOT_RET_MISS,TOT_RET_INIT_REQUEST,TOT_RET_BANK_REQUEST,TOT_RET_ACTIVE_REQUEST\n");
+  for (const auto& stat : stats.roi_dram_stats)
+    print_latency(stat);
+
   // TODO[OSM] : cache miss latency in not prefetch
-  fmt::print(stream, "\n=== {} LATENCY CSV ===\n", stats.name);
-  fmt::print(stream, "CACHE,AVG_MISS_LATENCY,NOT_PREFETCH_AVG_MISS_LATENCY\n");
-  // fmt::print(stream, "CACHE,AVG_MISS_LATENCY,NOT_PREFETCH_AVG_MISS_LATENCY,TOT_MISS_LATENCY,NOT_PREFETCH_TOT_MISS_LATENCY\n");
+  // TODO[OSM] : Breakdown latency  
+  fmt::print(stream, "\n=== {} AVG MISS LATENCY CSV ===\n", stats.name);
+  fmt::print(stream, "CACHE,MISS,NOT_PREFETCH,TAG_CHECK,HANDLE_MISS,FINISH_PACKET,TOT_MISS\n");
   if (NUM_CPUS > 1) {
     for (const auto& stat : stats.sim_cache_stats)
       print_latency(stat);
@@ -214,7 +268,7 @@ void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 
   // TODO[OSM] : For Prefetcher hit in PTW
   fmt::print(stream, "\n=== {} PREFETCH CSV ===\n", stats.name);
-  fmt::print(stream, "CACHE,REQUESTED,ISSUED,USEFUL,USELESS,L5_USEFUL,L4_USEFUL,L3_USEFUL,L2_USEFUL,L1_USEFUL\n");
+  fmt::print(stream, "CACHE,REQUESTED,ISSUED,USEFUL,USEFUL_ONGOING,USELESS,L5_USEFUL,L4_USEFUL,L3_USEFUL,L2_USEFUL,L1_USEFUL\n");
   
   // TODO[OSM] : For Prefetcher hit in PTW
   if (NUM_CPUS > 1) {
