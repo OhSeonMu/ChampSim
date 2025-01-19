@@ -1,6 +1,7 @@
 #include <bitset>
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "cache.h"
 
@@ -9,6 +10,16 @@ namespace
 constexpr std::size_t REGION_COUNT = 128;
 constexpr int MAX_DISTANCE = 256;
 constexpr int PREFETCH_DEGREE = 2;
+
+// TODO[OSM] : Analyze ampm prefetcher in AT prefetch
+int64_t at_hit = 0;
+int64_t at_miss = 0;
+
+auto print_stats() {
+  std::cout << "AMPM AT STATS" << std::endl;
+  std::cout << "TOTAL_ACCESS,HIT,MISS" << std::endl;
+  std::cout << at_hit + at_miss << "," << at_hit << "," << at_miss << std::endl;
+}
 
 struct region_type {
   uint64_t vpn;
@@ -64,6 +75,12 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
     return metadata_in;
   }
 
+  // TODO[OSM] : Analyze ampm prefetcher in AT prefetch
+  if (demand_region->access_map.test(page_offset))
+    at_hit++;
+  else
+    at_miss++;
+
   // mark this demand access
   demand_region->access_map.set(page_offset);
 
@@ -73,6 +90,10 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
       const auto pos_step_addr = addr + direction * (i * (signed)BLOCK_SIZE);
       const auto neg_step_addr = addr - direction * (i * (signed)BLOCK_SIZE);
       const auto neg_2step_addr = addr - direction * (2 * i * (signed)BLOCK_SIZE);
+
+      // TODO[OSM] : pte preteching only in same page
+      if ( !((pos_step_addr >> LOG2_PAGE_SIZE) == (addr >> LOG2_PAGE_SIZE)) || !((neg_step_addr >> LOG2_PAGE_SIZE) == (addr >> LOG2_PAGE_SIZE)) || !((neg_2step_addr >> LOG2_PAGE_SIZE) == (addr >> LOG2_PAGE_SIZE)) )
+        continue;
 
       if (::check_cl_access(this, neg_step_addr) && ::check_cl_access(this, neg_2step_addr) && !::check_cl_access(this, pos_step_addr)
           && !::check_cl_prefetch(this, pos_step_addr)) {
@@ -106,4 +127,9 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 }
 
 void CACHE::prefetcher_cycle_operate() {}
-void CACHE::prefetcher_final_stats() {}
+
+
+void CACHE::prefetcher_final_stats() {
+  // TODO[OSM] : Analyze ampm prefetcher in AT prefetch
+  ::print_stats();
+}

@@ -1,6 +1,7 @@
 #include <map>
 
 #include "cache.h"
+#include "vmem.h"
 #include "msl/lru_table.h"
 
 namespace
@@ -37,7 +38,7 @@ public:
 
     table.fill({ip, vpn, stride, state});
 
-    uint64_t delta = (state == 2) ? 0 : stride;
+    uint64_t delta = (state == 2) ? stride : 0;
     return delta;
   }
 };
@@ -50,10 +51,13 @@ void CACHE::prefetcher_initialize() {}
 uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, bool useful_prefetch, uint8_t type, uint32_t metadata_in)
 {
   auto delta = ::asps[this].initiate_lookahead(ip, addr >> LOG2_PAGE_SIZE);
-  metadata_in = 1;
+  // metadata_in = 1;
   if (delta != 0) {
     uint64_t pf_addr = addr + (delta << LOG2_PAGE_SIZE);
-    prefetch_line(pf_addr, true, metadata_in);
+    // if (this->vmem->check_va_to_pa(this->cpu, pf_addr) & !warmup)
+    // if (this->vmem->check_va_to_pa(this->cpu, pf_addr))
+    if (!(this->warmup))
+      prefetch_line(pf_addr, true, 1);
   }
   return metadata_in;
 }

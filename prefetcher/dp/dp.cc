@@ -9,6 +9,7 @@
 #include <cassert>
 
 #include "cache.h"
+#include "vmem.h"
 #include "msl/lru_table.h"
 
 namespace
@@ -38,7 +39,9 @@ struct dp {
     void prefetch_slot(uint64_t vpn, uint32_t metadata_in, CACHE* cache) const {
       for (const auto& d : lru_list) {
 	uint64_t pf_vpn = vpn + (d << LOG2_PAGE_SIZE);
-        cache->prefetch_line(pf_vpn, true, metadata_in);
+	// if (this->vmem->check_va_to_pa(this->cpu, pf_addr) & !warmup)
+	if (!(cache->warmup))
+	  cache->prefetch_line(pf_vpn, true, 1);
       }
     }
 
@@ -91,7 +94,6 @@ void CACHE::prefetcher_initialize() {}
 
 uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, bool useful_prefetch, uint8_t type, uint32_t metadata_in)
 {
-  metadata_in = 1;
   ::dps[this].initiate_lookahead(addr, metadata_in, this);
   return metadata_in;
 }
