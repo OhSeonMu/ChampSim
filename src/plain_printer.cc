@@ -206,10 +206,10 @@ void champsim::plain_printer_csv::print_latency(CACHE::stats_type stats)
 		    stats.name, 
 		    stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency);
     */
-    fmt::print(stream, "{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{}\n", 
-		    stats.name, stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency, 
+    fmt::print(stream, "{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{},{},{}\n", 
+		    stats.name, stats.avg_miss_latency, stats.avg_not_prefetch_miss_latency, stats.avg_prefetch_miss_latency, 
 		    stats.avg_initiate_tag_check_latency, stats.avg_handle_miss_latency, stats.avg_finish_packet_latency,
-		    stats.total_miss_latency);
+		    stats.total_miss_latency, stats.total_not_prefetch_miss_latency, stats.total_prefetch_miss_latency);
   }
 }
 
@@ -239,6 +239,79 @@ void champsim::plain_printer_csv::print_prefetcher(CACHE::stats_type stats)
   }
 }
 
+// TODO[OSM] : Check Access Block 
+void champsim::plain_printer_csv::print_distribution(CACHE::stats_type stats)
+{
+  for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
+    fmt::print(stream, "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n", 
+		    stats.name, 
+		    stats.access_cache_block[0],
+		    stats.access_cache_block[1],
+		    stats.access_cache_block[2],
+		    stats.access_cache_block[3],
+		    stats.access_cache_block[4],
+		    stats.access_cache_block[5],
+		    stats.access_cache_block[6],
+		    stats.access_cache_block[7],
+		    stats.access_cache_block[8],
+		    stats.access_cache_block[9],
+		    stats.access_cache_block[10],
+		    stats.access_cache_block[11],
+		    stats.access_cache_block[12],
+		    stats.access_cache_block[13],
+		    stats.access_cache_block[14],
+		    stats.access_cache_block[15],
+		    stats.access_cache_block[16],
+		    stats.access_cache_block[17],
+		    stats.access_cache_block[18],
+		    stats.access_cache_block[19],
+		    stats.access_cache_block[20],
+		    stats.access_cache_block[21],
+		    stats.access_cache_block[22],
+		    stats.access_cache_block[23],
+		    stats.access_cache_block[24],
+		    stats.access_cache_block[25],
+		    stats.access_cache_block[26],
+		    stats.access_cache_block[27],
+		    stats.access_cache_block[28],
+		    stats.access_cache_block[29],
+		    stats.access_cache_block[30],
+		    stats.access_cache_block[31],
+		    stats.access_cache_block[32],
+		    stats.access_cache_block[33],
+		    stats.access_cache_block[34],
+		    stats.access_cache_block[35],
+		    stats.access_cache_block[36],
+		    stats.access_cache_block[37],
+		    stats.access_cache_block[38],
+		    stats.access_cache_block[39],
+		    stats.access_cache_block[40],
+		    stats.access_cache_block[41],
+		    stats.access_cache_block[42],
+		    stats.access_cache_block[43],
+		    stats.access_cache_block[44],
+		    stats.access_cache_block[45],
+		    stats.access_cache_block[46],
+		    stats.access_cache_block[47],
+		    stats.access_cache_block[48],
+		    stats.access_cache_block[49],
+		    stats.access_cache_block[50],
+		    stats.access_cache_block[51],
+		    stats.access_cache_block[52],
+		    stats.access_cache_block[53],
+		    stats.access_cache_block[54],
+		    stats.access_cache_block[55],
+		    stats.access_cache_block[56],
+		    stats.access_cache_block[57],
+		    stats.access_cache_block[58],
+		    stats.access_cache_block[59],
+		    stats.access_cache_block[60],
+		    stats.access_cache_block[61],
+		    stats.access_cache_block[62],
+		    stats.access_cache_block[63]);
+  }
+}
+
 // TODO[OSM] : To track hit/miss in cache
 void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
 {
@@ -257,7 +330,7 @@ void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
   // TODO[OSM] : cache miss latency in not prefetch
   // TODO[OSM] : Breakdown latency  
   fmt::print(stream, "\n=== {} AVG MISS LATENCY CSV ===\n", stats.name);
-  fmt::print(stream, "CACHE,MISS,NOT_PREFETCH,TAG_CHECK,HANDLE_MISS,FINISH_PACKET,TOT_MISS\n");
+  fmt::print(stream, "CACHE,MISS,NOT_PREFETCH,PREFETCH,TAG_CHECK,HANDLE_MISS,FINISH_PACKET,TOT_MISS,TOT_NOT_PREFETCH,TOT_PREFETCH\n");
   if (NUM_CPUS > 1) {
     for (const auto& stat : stats.sim_cache_stats)
       print_latency(stat);
@@ -279,6 +352,20 @@ void champsim::plain_printer_csv::print(champsim::phase_stats& stats)
   // TODO[OSM] : For Prefetcher hit in PTW
   for (const auto& stat : stats.roi_cache_stats)
     print_prefetcher(stat);
+  
+  // TODO[OSM] : Check Access Block 
+  fmt::print(stream, "\n=== {} DISTRIBUTION CSV ===\n", stats.name);
+  fmt::print(stream, "CACHE,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63\n");
+  
+  // TODO[OSM] : Check Access Block 
+  if (NUM_CPUS > 1) {
+    for (const auto& stat : stats.sim_cache_stats)
+      print_distribution(stat);
+  }
+  
+  // TODO[OSM] : Check Access Block 
+  for (const auto& stat : stats.roi_cache_stats)
+    print_distribution(stat);
   
   fmt::print(stream, "\n=== {} CSV ===\n", stats.name);
   fmt::print(stream, "CACHE,TYPE,TOTAL,HIT,MISS\n");

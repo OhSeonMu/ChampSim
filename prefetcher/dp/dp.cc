@@ -14,8 +14,8 @@
 
 namespace
 {
-constexpr static std::size_t MP_SETS = 64;
-constexpr static std::size_t MP_WAYS = 1;
+constexpr static std::size_t DP_SETS = 64;
+constexpr static std::size_t DP_WAYS = 1;
 constexpr static std::size_t SLOT_SIZE = 4;
 
 struct dp {
@@ -56,7 +56,7 @@ struct dp {
 
   uint64_t previous_vpn;
   int64_t previous_distance;
-  champsim::msl::lru_table<dp_entry> dp_table{MP_SETS, MP_WAYS};
+  champsim::msl::lru_table<dp_entry> dp_table{DP_SETS, DP_WAYS};
  
 public:
   void initiate_lookahead(uint64_t vpn, uint32_t metadata_in, CACHE* cache) 

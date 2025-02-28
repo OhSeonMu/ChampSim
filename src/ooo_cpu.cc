@@ -542,6 +542,9 @@ void O3_CPU::do_complete_execution(ooo_model_instr& instr)
     auto begin = std::begin(reg_producers[dreg]);
     auto end = std::end(reg_producers[dreg]);
     auto elem = std::find_if(begin, end, [id = instr.instr_id](ooo_model_instr& x) { return x.instr_id == id; });
+    // TODO[OSM] : Check      
+    if (elem == end)
+      fmt::print("[OSM] {} instr_id {} : not find in ooo_cpu\n", __func__, instr.instr_id);
     assert(elem != end);
     reg_producers[dreg].erase(elem);
   }
@@ -676,6 +679,10 @@ LSQ_ENTRY::LSQ_ENTRY(uint64_t id, uint64_t addr, uint64_t local_ip, std::array<u
 void LSQ_ENTRY::finish(std::deque<ooo_model_instr>::iterator begin, std::deque<ooo_model_instr>::iterator end) const
 {
   auto rob_entry = std::partition_point(begin, end, [id = this->instr_id](auto x) { return x.instr_id < id; });
+  if (rob_entry == end)
+    fmt::print("[OSM] {} instr_id {} : not find in ooo_cpu 1\n", __func__, this->instr_id);
+  if (rob_entry->instr_id != this->instr_id)
+    fmt::print("[OSM] {} instr_id {} : not find in ooo_cpu 2\n", __func__, this->instr_id);
   assert(rob_entry != end);
   assert(rob_entry->instr_id == this->instr_id);
 

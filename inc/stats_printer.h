@@ -92,6 +92,16 @@ class plain_printer_csv
     for (auto& stats : stats_list)
       print_dram(stats);
   }
+  
+  // TODO[OSM] : Check Access Block
+  void print_distribution(CACHE::stats_type);
+  
+  template <typename T>
+  void print_distribution(std::vector<T> stats_list)
+  {
+    for (auto& stats : stats_list)
+      print_distribution(stats);
+  }
 
 public:
   plain_printer_csv(std::ostream& str) : stream(str) {}

@@ -67,11 +67,13 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
+"perfect_activate": "L5_TRANSLATION,L4_TRANSLATION,L3_TRANSLATION,L2_TRANSLATION,L1_TRANSLATION",
+"perfect_cache": true,
         "prefetcher": "no"
     },
 
     "L2C": {
-        "sets": 1024,
+        "sets": 512,
         "ways": 8,
         "rq_size": 32,
         "wq_size": 32,
@@ -145,8 +147,8 @@
     	"pscl5_set": 1,
 	"pscl5_way": 2,
 	"pscl4_set": 1,
-	"pscl4_way": 4,
-	"pscl3_set": 2,
+	"pscl4_way": 2,
+	"pscl3_set": 1,
 	"pscl3_way": 4,
 	"pscl2_set": 4,
 	"pscl2_way": 8,
@@ -184,9 +186,9 @@
         "channel_width": 8,
         "wq_size": 64,
         "rq_size": 64,
-        "tRP": 12.5,
-        "tRCD": 12.5,
-        "tCAS": 12.5,
+        "tRP": 11,
+        "tRCD": 11,
+        "tCAS": 11,
         "turn_around_time": 7.5
     },
 

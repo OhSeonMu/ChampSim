@@ -2,7 +2,8 @@
 
 void CACHE::prefetcher_initialize(){
     /*=== Bingo Settings ===*/
-    const int REGION_SIZE = 2 * 1024;  /* size of spatial region = 2KB */
+    // const int REGION_SIZE = 2 * 1024;  /* size of spatial region = 2KB */
+    const int REGION_SIZE = 4 * 1024;  /* size of spatial region = 4KB */
     const int PC_WIDTH = 16;           /* number of PC bits used in PHT */
     const int MIN_ADDR_WIDTH = 5;      /* number of Address bits used for PC+Offset matching */
     const int MAX_ADDR_WIDTH = 16;     /* number of Address bits used for PC+Address matching */
@@ -23,8 +24,8 @@ void CACHE::prefetcher_initialize(){
                       AT_SIZE, PHT_SIZE, PHT_WAYS, PF_STREAMER_SIZE, BINGO::DEBUG_LEVEL));
 
 	cout <<"Bingo PHT WAYS: " << PHT_WAYS << " and PHT_SIZE: " << PHT_SIZE << endl; 
-
 }
+
 void CACHE::prefetcher_cycle_operate() {}
 uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, bool useful_prefetch, uint8_t type, uint32_t metadata_in){
     if(!this->warmup && warmup_flag_l2 == 0)
@@ -63,6 +64,7 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
     return metadata_in;
 
 }
+
 uint32_t CACHE::prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t match, uint8_t prefetch, uint64_t evicted_addr, uint32_t metadata_in){
     uint64_t evicted_block_number = evicted_addr >> LOG2_BLOCK_SIZE;
 
@@ -83,6 +85,7 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t matc
 
     return metadata_in;
 }
+
 void CACHE::prefetcher_final_stats() {
 	 BINGO::prefetchers[cpu].print_stats();
 }

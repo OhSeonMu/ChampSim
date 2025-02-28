@@ -73,6 +73,12 @@ const auto default_l1i = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -101,6 +107,12 @@ const auto default_l1d = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -126,6 +138,12 @@ const auto default_l2c = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -151,6 +169,12 @@ const auto default_itlb = CACHE::Builder{}
                               .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -176,6 +200,12 @@ const auto default_dtlb = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -201,6 +231,12 @@ const auto default_stlb = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -227,6 +263,12 @@ const auto default_pb = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .set_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD)
 			      // TODO[OSM] : perfect cache for PTW
@@ -253,6 +295,12 @@ const auto default_llc = CACHE::Builder{}
                              .reset_perfect_tlb()
 			      // TODO[OSM] : prefetch tlb
 			      .reset_is_pb()
+			      // TODO[OSM] : prefetch tempo
+			      .reset_skip_ptempo()
+			      .reset_enable_ptempo()
+			      // TODO[OSM] : prefetch tlb with cache line
+			      .reset_skip_tcp()
+			      .reset_enable_tcp()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -263,7 +311,9 @@ const auto default_llc = CACHE::Builder{}
 const auto default_ptw =
     // TODO[OSM] : ASAP
     // PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8);
-    PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0);
+    // TODO[OSM] : prefetch tempo
+    // PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0);
+    PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0).enable_ptempo(0);
 } // namespace champsim::defaults
 
 #endif

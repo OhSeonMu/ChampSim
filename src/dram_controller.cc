@@ -35,11 +35,13 @@ uint64_t cycles(double time, int io_freq)
   return result < 0 ? 0 : static_cast<uint64_t>(result);
 }
 
+// TODO[OSM] : Idle Memory Latency
 MEMORY_CONTROLLER::MEMORY_CONTROLLER(double freq_scale, int io_freq, double t_rp, double t_rcd, double t_cas, double turnaround,
-                                     std::vector<channel_type*>&& ul)
+                                     std::vector<channel_type*>&& ul, bool idle_memory)
     : champsim::operable(freq_scale), queues(std::move(ul)), tRP(cycles(t_rp / 1000, io_freq)), tRCD(cycles(t_rcd / 1000, io_freq)),
       tCAS(cycles(t_cas / 1000, io_freq)), DRAM_DBUS_TURN_AROUND_TIME(cycles(turnaround / 1000, io_freq)),
-      DRAM_DBUS_RETURN_TIME(cycles(std::ceil(BLOCK_SIZE) / std::ceil(DRAM_CHANNEL_WIDTH), 1))
+      DRAM_DBUS_RETURN_TIME(cycles(std::ceil(BLOCK_SIZE) / std::ceil(DRAM_CHANNEL_WIDTH), 1)), 
+      idle_memory(idle_memory)
 {
 }
 
@@ -50,9 +52,18 @@ long MEMORY_CONTROLLER::operate()
   initiate_requests();
 
   for (auto& channel : channels) {
-    if (warmup) {
+    // bool idle_memory = true;
+    // TODO[OSM] : Idle Memory Latency
+    if (warmup || idle_memory) {
+      if (!warmup)
+        channel.check_collision(current_cycle);
+
       for (auto& entry : channel.RQ) {
         if (entry.has_value()) {
+          // TODO[OSM] : Idle Memory Latency
+    	  if (!warmup && (current_cycle < entry->event_cycle + 80))
+	    continue;
+
           response_type response{entry->address, entry->v_address, entry->data, entry->pf_metadata, entry->instr_depend_on_me};
 	  
 	  // TODO[OSM] : Breakdonw latency
@@ -86,6 +97,11 @@ long MEMORY_CONTROLLER::operate()
         }
         entry.reset();
       }
+    }
+
+    // TODO[OSM] : Idle Memory Latency
+    if (idle_memory) {
+      continue;
     }
 
     // Check for forwarding
@@ -227,7 +243,7 @@ long MEMORY_CONTROLLER::operate()
           bool row_buffer_hit = (channel.bank_request[op_idx].open_row == op_row);
 
           // TODO[OSM] : change for dram latency 
-  	  // row_buffer_hit = 1;
+  	  row_buffer_hit = 1;
 
           // this bank is now busy
           channel.bank_request[op_idx] = {true, row_buffer_hit, op_row, current_cycle + tCAS + (row_buffer_hit ? 0 : tRP + tRCD), iter_next_schedule};

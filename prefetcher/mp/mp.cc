@@ -36,7 +36,7 @@ struct mp {
       lru_list.push_front(accessed_vpn);
     }
 
-    void prefetch_slot(uint64_t vpn, uint32_t metadata_in, CACHE* cache) const {
+    void prefetch_slot(uint64_t vpn, uint32_t metadata_in, CACHE* cache) {
       for (const auto& pf_vpn : lru_list) {
         // if (cache->vmem->check_va_to_pa(cache->cpu, pf_vpn))
 	if (!(cache->warmup))

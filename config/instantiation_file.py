@@ -18,7 +18,9 @@ import operator
 
 from . import util
 
-pmem_fmtstr = 'MEMORY_CONTROLLER {name}{{{frequency}, {io_freq}, {tRP}, {tRCD}, {tCAS}, {turn_around_time}, {{{_ulptr}}}}};'
+# TODO[OSM[ : Idle Memory Latency
+# pmem_fmtstr = 'MEMORY_CONTROLLER {name}{{{frequency}, {io_freq}, {tRP}, {tRCD}, {tCAS}, {turn_around_time}, {{{_ulptr}}}}};'
+pmem_fmtstr = 'MEMORY_CONTROLLER {name}{{{frequency}, {io_freq}, {tRP}, {tRCD}, {tCAS}, {turn_around_time}, {{{_ulptr}}}, {idle_memory}}};'
 vmem_fmtstr = 'VirtualMemory vmem{{{pte_page_size}, {num_levels}, {minor_fault_penalty}, {dram_name}}};'
 
 queue_fmtstr = 'champsim::channel {name}{{{rq_size}, {pq_size}, {wq_size}, {_offset_bits}, {_queue_check_full_addr:b}}};'
@@ -146,6 +148,9 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
         # TODO[OSM] : ASAP
         if "enable_asap" in ptw:
             yield '.enable_asap({enable_asap})'.format(**ptw)
+        # TODO[OSM] : prefetch tempo
+        if "enable_ptempo" in ptw:
+            yield '.enable_ptempo({enable_ptempo})'.format(**ptw)
 
         yield '.upper_levels({{{}}})'.format(vector_string('&{}_to_{}_queues'.format(ul, ptw['name']) for ul in upper_levels[ptw['name']]['uppers']))
         yield '.lower_level({})'.format('&{}_to_{}_queues'.format(ptw['name'], ptw['lower_level']))
@@ -173,6 +178,16 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             # TODO[OSM] : prefetch tlb
             ('is_pb', True): '.set_is_pb()',
             ('is_pb', False): '.reset_is_pb()',
+            # TODO[OSM] : prefetch tempo
+            ('skip_ptempo', True): '.set_skip_ptempo()',
+            ('skip_ptempo', False): '.reset_skip_ptempo()',
+            ('enable_ptempo', True): '.set_enable_ptempo()',
+            ('enable_ptempo', False): '.reset_enable_ptempo()',
+            # TODO[OSM] : prefetch tlb with cache line
+            ('skip_tcp', True): '.set_skip_tcp()',
+            ('skip_tcp', False): '.reset_skip_tcp()',
+            ('enable_tcp', True): '.set_enable_tcp()',
+            ('enable_tcp', False): '.reset_enable_tcp()',
         }
 
         yield from (v.format(**elem) for k,v in cache_builder_parts.items() if k in elem)

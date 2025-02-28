@@ -29,8 +29,9 @@
 PageTableWalker::PageTableWalker(Builder b)
     : champsim::operable(b.m_freq_scale), upper_levels(b.m_uls), lower_level(b.m_ll), NAME(b.m_name), MSHR_SIZE(b.m_mshr_size), MAX_READ(b.m_max_tag_check),
       // TODO[OSM] : ASAP
+      // TODO[OSM] : prefetch tempo
       // MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first)
-      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first), enable_asap(b.m_enable_asap)
+      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first), enable_asap(b.m_enable_asap), enable_ptempo(b.m_enable_ptempo)
 
 {
   std::vector<std::array<uint32_t, 3>> local_pscl_dims{};
@@ -98,7 +99,7 @@ auto PageTableWalker::handle_read_asap(const request_type& handle_pkt, channel_t
 
   return step_translation(fwd_mshr);
 }
-
+	
 auto PageTableWalker::handle_fill(const mshr_type& fill_mshr) -> std::optional<mshr_type>
 {
   if constexpr (champsim::debug_print) {
@@ -150,6 +151,26 @@ auto PageTableWalker::step_translation(const mshr_type& source) -> std::optional
   return std::nullopt;
 }
 
+// TODO[OSM] : prefetch tempo
+auto PageTableWalker::prefetch_tempo(const mshr_type& source) -> std::optional<mshr_type>
+{
+  request_type packet;
+  packet.address = champsim::splice_bits(source.data, source.address, LOG2_BLOCK_SIZE);
+  packet.v_address = source.v_address;
+  packet.pf_metadata = 10;
+  packet.cpu = source.cpu;
+  packet.asid[0] = source.asid[0];
+  packet.asid[1] = source.asid[1];
+  packet.is_translated = true;
+  packet.response_requested = false;
+  packet.type = access_type::PREFETCH;
+
+  bool success = lower_level->add_rq(packet);
+
+  if (success)
+    return source;
+}
+
 long PageTableWalker::operate()
 {
   long progress{0};
@@ -163,9 +184,12 @@ long PageTableWalker::operate()
   auto fill_bw = MAX_FILL;
   auto [complete_begin, complete_end] = champsim::get_span_p(std::cbegin(completed), std::cend(completed), fill_bw,
                                                              [cycle = current_cycle](const auto& pkt) { return pkt.event_cycle <= cycle; });
-  std::for_each(complete_begin, complete_end, [](auto& mshr_entry) {
+  std::for_each(complete_begin, complete_end, [this](auto& mshr_entry) {
     for (auto ret : mshr_entry.to_return)
       ret->emplace_back(mshr_entry.v_address, mshr_entry.v_address, mshr_entry.data, mshr_entry.pf_metadata, mshr_entry.instr_depend_on_me);
+    // TODO[OSM] : prefetch tempo
+    if (this->enable_ptempo & mshr_entry.pf_metadata)
+	this->prefetch_tempo(mshr_entry);
   });
   fill_bw -= std::distance(complete_begin, complete_end);
   progress += std::distance(complete_begin, complete_end);

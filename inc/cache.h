@@ -69,6 +69,10 @@ struct cache_stats {
   double avg_not_prefetch_miss_latency = 0;
   uint64_t total_not_prefetch_miss_latency = 0;
   
+  // TODO[OSM] : cache miss latency in prefetch 
+  double avg_prefetch_miss_latency = 0;
+  uint64_t total_prefetch_miss_latency = 0;
+
   // TODO[OSM] : Breakdown latency
   double avg_initiate_tag_check_latency = 0;
   double avg_handle_miss_latency = 0;
@@ -77,6 +81,9 @@ struct cache_stats {
   uint64_t total_initiate_tag_check_latency = 0;
   uint64_t total_handle_miss_latency = 0;
   uint64_t total_finish_packet_latency = 0;
+
+  // TODO[OSM] : Check Access Block 
+  uint64_t access_cache_block[64] = {0,};
 };
 
 class CACHE : public champsim::operable
@@ -105,9 +112,13 @@ class CACHE : public champsim::operable
     bool is_translated;
     bool translate_issued = false;
 
+    // TODO[OSM] : prefetch tlb with cache line
+    bool response_requested = false;
+
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
     uint64_t event_cycle = std::numeric_limits<uint64_t>::max();
+    
     // TODO[OSM] : Breakdown latency
     uint64_t initiate_tag_check_cycle = 0;		// current
 
@@ -132,7 +143,10 @@ class CACHE : public champsim::operable
     bool prefetch_from_this;
     // TODO[OSM] : For Prefetcher hit 
     bool prefetch_success = 0;
-
+    
+    // TODO[OSM] : prefetch tlb with cache line
+    bool skip_fill = false;
+    
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
     uint64_t event_cycle = std::numeric_limits<uint64_t>::max();
@@ -156,16 +170,14 @@ class CACHE : public champsim::operable
   void finish_packet(const response_type& packet);
   void finish_translation(const response_type& packet);
 
-  // TODO[OSM] : perfect cache for PTW
-  bool test_hit(const tag_lookup_type& handle_pkt);
-  bool test_fill(const mshr_type& fill_mshr);
-  
   void issue_translation();
 
   struct BLOCK {
     bool valid = false;
     bool prefetch = false;
     bool dirty = false;
+    // TODO[OSM] : Check Other Level Prefetcher hit 
+    bool prefetch_from_other = false;
 
     uint64_t address = 0;
     uint64_t v_address = 0;
@@ -217,10 +229,18 @@ public:
 
   // TODO[OSM] : perfect tlb for PTW
   const bool perfect_tlb = 0;
-  VirtualMemory* vmem;   
+  class VirtualMemory* vmem;   
 
   // TODO[OSM] : prefetch tlb
   const bool is_pb = 0;
+
+  // TODO[OSM] : prefetch tempo
+  const bool skip_ptempo = 0;
+  const bool enable_ptempo = 0;
+
+  // TODO[OSM] : prefetch tlb with cache line
+  const bool skip_tcp = 0;
+  const bool enable_tcp = 0;
 
   using stats_type = cache_stats;
 
@@ -374,6 +394,14 @@ public:
     // TODO[OSM] : prefetch tlb
     bool m_is_pb{};
 
+    // TODO[OSM] : prefetch tempo
+    bool m_skip_ptempo{};
+    bool m_enable_ptempo{};
+
+    // TODO[OSM] : prefetch tlb with cache line
+    bool m_skip_tcp{};
+    bool m_enable_tcp{};
+
     std::vector<CACHE::channel_type*> m_uls{};
     CACHE::channel_type* m_ll{};
     CACHE::channel_type* m_lt{nullptr};
@@ -389,7 +417,9 @@ public:
           // TODO[OSM] : perfect cache for PTW
           // TODO[OSM] : perfect tlb for PTW
     	  // TODO[OSM] : prefetch tlb
-	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem), m_is_pb(other.m_is_pb)
+          // TODO[OSM] : prefetch tempo
+          // TODO[OSM] : prefetch tlb with cache line
+	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem), m_is_pb(other.m_is_pb), m_skip_ptempo(other.m_skip_ptempo), m_enable_ptempo(other.m_enable_ptempo), m_skip_tcp(other.m_skip_tcp), m_enable_tcp(other.m_enable_tcp)
     {
     }
 
@@ -528,6 +558,50 @@ public:
       m_is_pb = false;
       return *this;
     }
+    // TODO[OSM] : prefetch tempo
+    self_type& set_skip_ptempo()
+    {
+      m_skip_ptempo = true;
+      return *this;
+    }
+    self_type& set_enable_ptempo()
+    {
+      m_enable_ptempo = true;
+      return *this;
+    }
+    // TODO[OSM] : prefetch tempo
+    self_type& reset_skip_ptempo()
+    {
+      m_skip_ptempo = false;
+      return *this;
+    }
+    self_type& reset_enable_ptempo()
+    {
+      m_enable_ptempo = false;
+      return *this;
+    }
+    // TODO[OSM] : prefetch tlb with cache line
+    self_type& set_skip_tcp()
+    {
+      m_skip_tcp = true;
+      return *this;
+    }
+    self_type& set_enable_tcp()
+    {
+      m_enable_tcp = true;
+      return *this;
+    }
+    // TODO[OSM] : prefetch tlb with cache line
+    self_type& reset_skip_tcp()
+    {
+      m_skip_tcp = false;
+      return *this;
+    }
+    self_type& reset_enable_tcp()
+    {
+      m_enable_tcp = false;
+      return *this;
+    }
     template <typename... Elems>
     self_type& prefetch_activate(Elems... pref_act_elems)
     {
@@ -577,7 +651,8 @@ public:
         // TODO[OSM] : perfect cache for PTW
 	// TODO[OSM] : perfect tlb for PTW
         // TODO[OSM] : prefetch tlb
-        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem), is_pb(b.m_is_pb), 
+        // TODO[OSM] : prefetch tempo
+        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem), is_pb(b.m_is_pb), skip_ptempo(b.m_skip_ptempo), enable_ptempo(b.m_enable_ptempo), skip_tcp(b.m_skip_tcp), enable_tcp(b.m_enable_tcp), 
         module_pimpl(std::make_unique<module_model<P_FLAG, R_FLAG>>(this))
   {
   }

@@ -129,6 +129,9 @@ class MEMORY_CONTROLLER : public champsim::operable
   // Latencies
   const uint64_t tRP, tRCD, tCAS, DRAM_DBUS_TURN_AROUND_TIME, DRAM_DBUS_RETURN_TIME;
 
+  // TODO[OSM] : Idle Memory Latency
+  const bool idle_memory;
+
   // these values control when to send out a burst of writes
   constexpr static std::size_t DRAM_WRITE_HIGH_WM = ((DRAM_WQ_SIZE * 7) >> 3);         // 7/8th
   constexpr static std::size_t DRAM_WRITE_LOW_WM = ((DRAM_WQ_SIZE * 6) >> 3);          // 6/8th
@@ -141,7 +144,8 @@ class MEMORY_CONTROLLER : public champsim::operable
 public:
   std::array<DRAM_CHANNEL, DRAM_CHANNELS> channels;
 
-  MEMORY_CONTROLLER(double freq_scale, int io_freq, double t_rp, double t_rcd, double t_cas, double turnaround, std::vector<channel_type*>&& ul);
+  // TODO[OSM] : Idle Memory Latency
+  MEMORY_CONTROLLER(double freq_scale, int io_freq, double t_rp, double t_rcd, double t_cas, double turnaround, std::vector<channel_type*>&& ul, bool idle_memory);
 
   void initialize() override final;
   long operate() override final;

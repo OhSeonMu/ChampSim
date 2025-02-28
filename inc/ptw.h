@@ -61,7 +61,7 @@ class PageTableWalker : public champsim::operable
 
     // TODO[OSM] : ASAP
     bool is_asap = false;
-
+    
     mshr_type(request_type req, std::size_t level);
   };
 
@@ -78,6 +78,9 @@ class PageTableWalker : public champsim::operable
 
   // TODO[OSM] : ASAP
   std::optional<mshr_type> handle_read_asap(const request_type& pkt, channel_type* ul, std::size_t level);
+  
+  // TODO[OSM] : prefetch tempo
+  std::optional<mshr_type> prefetch_tempo(const mshr_type& source);
 
   void finish_packet(const response_type& packet);
 
@@ -88,12 +91,15 @@ public:
   const uint64_t HIT_LATENCY;
 
   std::vector<pscl_type> pscl;
-  VirtualMemory* vmem;
+  class VirtualMemory* vmem;
 
   const uint64_t CR3_addr;
   
   // TODO[OSM] : ASAP
   bool enable_asap; 
+  
+  // TODO[OSM] : prefetch tempo
+  bool enable_ptempo; 
 
   class Builder
   {
@@ -111,6 +117,9 @@ public:
 
     // TODO[OSM] : ASAP
     bool m_enable_asap{};
+    
+    // TODO[OSM] : prefetch tempo
+    bool m_enable_ptempo{};
 
     friend class PageTableWalker;
 
@@ -174,6 +183,12 @@ public:
     Builder& enable_asap(bool enable_asap_)
     {
       m_enable_asap = enable_asap_;
+      return *this;
+    }
+    // TODO[OSM] : prefetch tempo
+    Builder& enable_ptempo(bool enable_ptempo_)
+    {
+      m_enable_ptempo = enable_ptempo_;
       return *this;
     }
   };
