@@ -271,8 +271,9 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 	  uint64_t penalty;
 	  std::tie(to_allocate.data, penalty) = vmem->va_to_pa(to_allocate.cpu, to_allocate.v_address);
         } 
+	handle_fill(to_allocate);
+	// return handle_fill(to_allocate);
 	// return hit;
-	return handle_fill(to_allocate);
     }
  } 
   
@@ -304,8 +305,8 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
   if (mshr_entry != MSHR.end()) // miss already inflight
   {
     // TODO[OSM] : perfect cache for PTW 
-    // if (((1 << champsim::to_underlying(handle_pkt.type)) & perf_activate_mask) && (perfect_cache || perfect_tlb))
-    //   return true;
+    if (((1 << champsim::to_underlying(handle_pkt.type)) & perf_activate_mask) && (perfect_cache || perfect_tlb))
+       return true;
 
     if (mshr_entry->type == access_type::PREFETCH && handle_pkt.type != access_type::PREFETCH) {
       // Mark the prefetch as useful

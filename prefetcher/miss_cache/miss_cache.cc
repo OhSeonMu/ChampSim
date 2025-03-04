@@ -12,7 +12,7 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 {
   uint64_t pf_addr = evicted_addr;
   if (!warmup)
-    prefetch_line(pf_addr, false, 1);
+    prefetch_line(pf_addr, false, 11);
   return metadata_in;
 }
 
