@@ -82,9 +82,17 @@ CACHE::BLOCK::BLOCK(mshr_type mshr)
 {
 }
 
-bool CACHE::handle_fill(const mshr_type& fill_mshr)
+// TODO[OSM] : enable tlb coalescing
+// bool CACHE::handle_fill(const mshr_type& fill_mshr)
+bool CACHE::handle_fill(mshr_type& fill_mshr)
 {
   cpu = fill_mshr.cpu;
+  
+  // TODO[OSM] : enable tlb coalescing
+  auto tmp_address = fill_mshr.address;
+  if (enable_coalescing) {  
+      fill_mshr.address = fill_mshr.address & ~champsim::bitmask(LOG2_SUPER_PAGE_SIZE);
+  }
 
   // TODO[OSM] : prefetch tlb
   // TODO[OSM] : prefetch tlb with cache line
@@ -102,9 +110,15 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     sim_stats.total_finish_packet_latency += current_cycle - (fill_mshr.finish_packet_cycle);
   
     auto metadata_thru = fill_mshr.pf_metadata;
+
+    // TODO[OSM] : enable tlb coalescing
+    if (enable_coalescing)
+      fill_mshr.address = tmp_address;
+
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
     for (auto ret : fill_mshr.to_return)
       ret->push_back(response);
+
     return true;
   }
 
@@ -166,6 +180,12 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
                                     champsim::to_underlying(fill_mshr.type), false);
 
       way->pf_metadata = metadata_thru;
+      // TODO[OSM] : enable tlb coalescing
+      if (enable_coalescing) {
+        way->data = fill_mshr.data -
+	        PAGE_SIZE * ((fill_mshr.v_address >> LOG2_PAGE_SIZE) - (fill_mshr.address >> LOG2_PAGE_SIZE));
+       }
+
       // TODO[OSM] : For Prefetcher hit
       if (fill_mshr.prefetch_success)
         way->prefetch = false;
@@ -179,6 +199,10 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     impl_update_replacement_state(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, fill_mshr.address, fill_mshr.ip, 0,
                                   champsim::to_underlying(fill_mshr.type), false);
   }
+
+  // TODO[OSM] : enable tlb coalescing
+  if (enable_coalescing) 
+    fill_mshr.address = tmp_address;
 
   if (success) {
     // COLLECT STATS
@@ -197,13 +221,21 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     for (auto ret : fill_mshr.to_return)
       ret->push_back(response);
   }
-
+    
   return success;
 }
 
-bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
+// TODO[OSM] : enable tlb coalescing
+// bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
+bool CACHE::try_hit(tag_lookup_type& handle_pkt)
 {
   cpu = handle_pkt.cpu;
+   
+  // TODO[OSM] : enable tlb coalescing
+  auto tmp_address = handle_pkt.address;
+  if (enable_coalescing) {  
+      handle_pkt.address = handle_pkt.address & ~champsim::bitmask(LOG2_SUPER_PAGE_SIZE);
+  }
 
   // access cache
   auto [set_begin, set_end] = get_set_span(handle_pkt.address);
@@ -239,9 +271,20 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, way->address, handle_pkt.ip, 0,
                                   champsim::to_underlying(handle_pkt.type), true);
 
-    response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
-    for (auto ret : handle_pkt.to_return)
-      ret->push_back(response);
+    // TODO[OSM] : enable tlb coalescing
+    if (enable_coalescing) {
+      auto data = way->data + 
+	      PAGE_SIZE * ((handle_pkt.v_address >> LOG2_PAGE_SIZE) - (handle_pkt.address >> LOG2_PAGE_SIZE));
+      handle_pkt.address = tmp_address;
+      response_type response{handle_pkt.address, handle_pkt.v_address, data, metadata_thru, handle_pkt.instr_depend_on_me};
+      for (auto ret : handle_pkt.to_return)
+        ret->push_back(response);
+    }
+    else { 
+      response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
+      for (auto ret : handle_pkt.to_return)
+        ret->push_back(response);
+    }
 
     way->dirty |= (handle_pkt.type == access_type::WRITE);
 
@@ -265,13 +308,18 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
   } 
   // TODO[OSM] : perfect cache for PTW
   else {
+    // TODO[OSM] : enable tlb coalescing
+    if (enable_coalescing) 
+      handle_pkt.address = tmp_address;
+
     if (((1 << champsim::to_underlying(handle_pkt.type)) & perf_activate_mask) && (perfect_cache || perfect_tlb)) {
 	mshr_type to_allocate{handle_pkt, current_cycle};
 	if (perfect_tlb) {
 	  uint64_t penalty;
 	  std::tie(to_allocate.data, penalty) = vmem->va_to_pa(to_allocate.cpu, to_allocate.v_address);
         } 
-	handle_fill(to_allocate);
+        mshr_type tmp_to_allocate = to_allocate;
+	handle_fill(tmp_to_allocate);
 	// return handle_fill(to_allocate);
 	// return hit;
     }
@@ -420,6 +468,7 @@ auto CACHE::initiate_tag_check(champsim::channel* ul)
   // TODO[OSM] : Breakdown latency
   return [cycle = current_cycle + (warmup ? 0 : HIT_LATENCY), ul, this](const auto& entry) {
     CACHE::tag_lookup_type retval{entry};
+
     retval.event_cycle = cycle;
     // TODO[OSM] : Breakdown latency
     retval.initiate_tag_check_cycle = this->current_cycle;
@@ -490,7 +539,9 @@ long CACHE::operate()
   for (auto q : {std::ref(MSHR), std::ref(inflight_writes)}) {
     auto [fill_begin, fill_end] =
         champsim::get_span_p(std::cbegin(q.get()), std::cend(q.get()), fill_bw, [cycle = current_cycle](const auto& x) { return x.event_cycle <= cycle; });
-    auto complete_end = std::find_if_not(fill_begin, fill_end, [this](const auto& x) { return this->handle_fill(x); });
+    auto complete_end = std::find_if_not(fill_begin, fill_end, [this](const auto& x) { 
+    		    mshr_type tmp_x = x;
+		    return this->handle_fill(tmp_x); });
     fill_bw -= std::distance(fill_begin, complete_end);
     q.get().erase(fill_begin, complete_end);
   }
@@ -530,7 +581,8 @@ long CACHE::operate()
 
   // Perform tag checks
   auto do_tag_check = [this](auto& pkt) {
-    if (this->try_hit(pkt))
+    tag_lookup_type tmp_pkt = pkt;
+    if (this->try_hit(tmp_pkt))
       return true;
     if (pkt.type == access_type::WRITE && !this->match_offset_bits)
       return this->handle_write(pkt); // Treat writes (that is, writebacks) like fills

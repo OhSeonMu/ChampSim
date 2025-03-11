@@ -79,6 +79,9 @@ const auto default_l1i = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -113,6 +116,9 @@ const auto default_l1d = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                              .set_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -144,6 +150,9 @@ const auto default_l2c = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -175,6 +184,9 @@ const auto default_itlb = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -206,6 +218,9 @@ const auto default_dtlb = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                               .set_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -237,6 +252,9 @@ const auto default_stlb = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
@@ -269,6 +287,9 @@ const auto default_pb = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                               .reset_wq_checks_full_addr()
                               .prefetch_activate(access_type::LOAD)
 			      // TODO[OSM] : perfect cache for PTW
@@ -301,19 +322,22 @@ const auto default_llc = CACHE::Builder{}
 			      // TODO[OSM] : prefetch tlb with cache line
 			      .reset_skip_tcp()
 			      .reset_enable_tcp()
+			      // TODO[OSM] : enable tlb coalescing
+			      .reset_enable_coalescing()
+			      .reset_coalescing_translation()
                              .reset_wq_checks_full_addr()
                              .prefetch_activate(access_type::LOAD, access_type::PREFETCH)
 			      // TODO[OSM] : perfect cache for PTW
-                              .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
+                             .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                              .prefetcher<CACHE::pprefetcherDno>()
                              .replacement<CACHE::rreplacementDlru>();
 
 const auto default_ptw =
     // TODO[OSM] : ASAP
-    // PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8);
     // TODO[OSM] : prefetch tempo
-    // PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0);
-    PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0).enable_ptempo(0);
+    // TODO[OSM] : enable tlb coalescing
+    // TODO[OSM] : enable block coalescing
+    PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0).enable_ptempo(0).enable_coalescing(0).enable_bcoalescing(0);
 } // namespace champsim::defaults
 
 #endif

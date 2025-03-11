@@ -20,10 +20,14 @@ def get_constants_file(env, pmem):
         '#include "util/bits.h"',
         'constexpr unsigned BLOCK_SIZE = {block_size};'.format(**env),
         'constexpr unsigned PAGE_SIZE = {page_size};'.format(**env),
+        # TODO[OSM] : enable tlb coalescing
+        'constexpr unsigned SUPER_PAGE_SIZE = {super_page_size};'.format(**env),
         'constexpr uint64_t STAT_PRINTING_PERIOD = {heartbeat_frequency};'.format(**env),
         'constexpr std::size_t NUM_CPUS = {num_cores};'.format(**env),
         'constexpr auto LOG2_BLOCK_SIZE = champsim::lg2(BLOCK_SIZE);',
         'constexpr auto LOG2_PAGE_SIZE = champsim::lg2(PAGE_SIZE);',
+        # TODO[OSM] : enable tlb coalescing
+        'constexpr auto LOG2_SUPER_PAGE_SIZE = champsim::lg2(SUPER_PAGE_SIZE);',
 
         'constexpr uint64_t DRAM_IO_FREQ = {io_freq};'.format(**pmem),
         'constexpr std::size_t DRAM_CHANNELS = {channels};'.format(**pmem),

@@ -21,7 +21,8 @@ from . import defaults
 from . import modules
 from . import util
 
-default_root = { 'block_size': 64, 'page_size': 4096, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
+# TODO[OSM] : enable tlb coalescing
+default_root = { 'block_size': 64, 'page_size': 4096, 'super_page_size': 32768, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
 default_core = { 'frequency' : 4000 }
 # TODO[OSM] : Change Default PMEM(16G)/VMEM(4level) value
 # TODO[OSM] : Idle Memory Latency
@@ -240,7 +241,8 @@ def parse_normalized(cores, caches, ptws, pmem, vmem, merged_configs, branch_con
         ))]
 
     env_vars = ('CC', 'CXX', 'CPPFLAGS', 'CXXFLAGS', 'LDFLAGS', 'LDLIBS')
-    extern_config_file_keys = ('block_size', 'page_size', 'heartbeat_frequency', 'num_cores')
+    # TODO[OSM] : enable tlb coalescing
+    extern_config_file_keys = ('block_size', 'page_size', 'super_page_size', 'heartbeat_frequency', 'num_cores')
 
     return elements, modules_to_compile, module_info, util.subdict(config_file, extern_config_file_keys), util.subdict(config_file, env_vars)
 

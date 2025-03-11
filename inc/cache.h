@@ -163,8 +163,11 @@ class CACHE : public champsim::operable
     static mshr_type merge(mshr_type predecessor, mshr_type successor);
   };
 
-  bool try_hit(const tag_lookup_type& handle_pkt);
-  bool handle_fill(const mshr_type& fill_mshr);
+  // TODO[OSM] : enable tlb coalescing
+  // bool try_hit(const tag_lookup_type& handle_pkt);
+  // bool handle_fill(const mshr_type& fill_mshr);
+  bool try_hit(tag_lookup_type& handle_pkt);
+  bool handle_fill(mshr_type& fill_mshr);
   bool handle_miss(const tag_lookup_type& handle_pkt);
   bool handle_write(const tag_lookup_type& handle_pkt);
   void finish_packet(const response_type& packet);
@@ -244,6 +247,10 @@ public:
   // TODO[OSM] : prefetch tlb with cache line
   const bool skip_tcp = 0;
   const bool enable_tcp = 0;
+
+  // TODO[OSM] : enable tlb coalescing
+  const bool enable_coalescing = 0;
+  const bool coalescing_translation = 0;
 
   using stats_type = cache_stats;
 
@@ -404,6 +411,10 @@ public:
     // TODO[OSM] : prefetch tlb with cache line
     bool m_skip_tcp{};
     bool m_enable_tcp{};
+  
+    // TODO[OSM] : enable tlb coalescing
+    bool m_enable_coalescing{};
+    bool m_coalescing_translation{};
 
     std::vector<CACHE::channel_type*> m_uls{};
     CACHE::channel_type* m_ll{};
@@ -422,7 +433,8 @@ public:
     	  // TODO[OSM] : prefetch tlb
           // TODO[OSM] : prefetch tempo
           // TODO[OSM] : prefetch tlb with cache line
-	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem), m_is_pb(other.m_is_pb), m_skip_ptempo(other.m_skip_ptempo), m_enable_ptempo(other.m_enable_ptempo), m_skip_tcp(other.m_skip_tcp), m_enable_tcp(other.m_enable_tcp)
+          // TODO[OSM] : enable tlb coalescing
+	  m_perfect_cache(other.m_perfect_cache), m_perfect_tlb(other.m_perfect_tlb), m_perf_act_mask(other.m_perf_act_mask), m_vmem(other.m_vmem), m_is_pb(other.m_is_pb), m_skip_ptempo(other.m_skip_ptempo), m_enable_ptempo(other.m_enable_ptempo), m_skip_tcp(other.m_skip_tcp), m_enable_tcp(other.m_enable_tcp), m_enable_coalescing(other.m_enable_coalescing), m_coalescing_translation(other.m_coalescing_translation)
     {
     }
 
@@ -605,6 +617,28 @@ public:
       m_enable_tcp = false;
       return *this;
     }
+    // TODO[OSM] : enable tlb coalescing
+    self_type& reset_enable_coalescing()
+    {
+      m_enable_coalescing = false;
+      return *this;
+    }
+    self_type& reset_coalescing_translation()
+    {
+      m_coalescing_translation = false;
+      return *this;
+    }
+    // TODO[OSM] : enable tlb coalescing
+    self_type& set_enable_coalescing()
+    {
+      m_enable_coalescing = true;
+      return *this;
+    }
+    self_type& set_coalescing_translation()
+    {
+      m_coalescing_translation = true;
+      return *this;
+    }
     template <typename... Elems>
     self_type& prefetch_activate(Elems... pref_act_elems)
     {
@@ -655,7 +689,8 @@ public:
 	// TODO[OSM] : perfect tlb for PTW
         // TODO[OSM] : prefetch tlb
         // TODO[OSM] : prefetch tempo
-        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem), is_pb(b.m_is_pb), skip_ptempo(b.m_skip_ptempo), enable_ptempo(b.m_enable_ptempo), skip_tcp(b.m_skip_tcp), enable_tcp(b.m_enable_tcp), 
+        // TODO[OSM] : enable tlb coalescing
+        perfect_cache(b.m_perfect_cache),  perfect_tlb(b.m_perfect_tlb), perf_activate_mask(b.m_perf_act_mask), vmem(b.m_vmem), is_pb(b.m_is_pb), skip_ptempo(b.m_skip_ptempo), enable_ptempo(b.m_enable_ptempo), skip_tcp(b.m_skip_tcp), enable_tcp(b.m_enable_tcp), enable_coalescing(b.m_enable_coalescing), coalescing_translation(b.m_coalescing_translation),
         module_pimpl(std::make_unique<module_model<P_FLAG, R_FLAG>>(this))
   {
   }

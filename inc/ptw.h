@@ -74,7 +74,8 @@ class PageTableWalker : public champsim::operable
 
   std::optional<mshr_type> handle_read(const request_type& pkt, channel_type* ul);
   std::optional<mshr_type> handle_fill(const mshr_type& pkt);
-  std::optional<mshr_type> step_translation(const mshr_type& source);
+  // std::optional<mshr_type> step_translation(const mshr_type& source);
+  std::optional<mshr_type> step_translation(mshr_type& source);
 
   // TODO[OSM] : ASAP
   std::optional<mshr_type> handle_read_asap(const request_type& pkt, channel_type* ul, std::size_t level);
@@ -101,6 +102,10 @@ public:
   // TODO[OSM] : prefetch tempo
   bool enable_ptempo; 
 
+  // TODO[OSM] : enable tlb coalescing
+  bool enable_coalescing;
+  bool enable_bcoalescing;
+
   class Builder
   {
     std::string_view m_name{};
@@ -120,6 +125,10 @@ public:
     
     // TODO[OSM] : prefetch tempo
     bool m_enable_ptempo{};
+  
+    // TODO[OSM] : enable tlb coalescing
+    bool m_enable_coalescing{};
+    bool m_enable_bcoalescing{};
 
     friend class PageTableWalker;
 
@@ -189,6 +198,17 @@ public:
     Builder& enable_ptempo(bool enable_ptempo_)
     {
       m_enable_ptempo = enable_ptempo_;
+      return *this;
+    }
+    // TODO[OSM] : enable tlb coalescing
+    Builder& enable_coalescing(bool enable_coalescing_)
+    {
+      m_enable_coalescing = enable_coalescing_;
+      return *this;
+    }
+    Builder& enable_bcoalescing(bool enable_bcoalescing_)
+    {
+      m_enable_bcoalescing = enable_bcoalescing_;
       return *this;
     }
   };

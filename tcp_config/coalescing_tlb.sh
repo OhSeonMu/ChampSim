@@ -72,7 +72,7 @@
     },
 
     "L2C": {
-        "sets": 1024,
+        "sets": 512,
         "ways": 8,
         "rq_size": 32,
         "wq_size": 32,
@@ -97,7 +97,8 @@
         "latency": 1,
         "max_tag_check": 2,
         "max_fill": 2,
-        "prefetch_as_load": false
+        "prefetch_as_load": false,
+	"enable_coalescing": true
     },
 
     "DTLB": {
@@ -110,7 +111,8 @@
         "latency": 1,
         "max_tag_check": 2,
         "max_fill": 2,
-        "prefetch_as_load": false
+        "prefetch_as_load": false,
+	"enable_coalescing": true
     },
 
     "STLB": {
@@ -123,7 +125,8 @@
         "latency": 8,
         "max_tag_check": 1,
         "max_fill": 1,
-        "prefetch_as_load": false
+        "prefetch_as_load": false,
+	"enable_coalescing": true
     },
 
     "PB": {
@@ -137,27 +140,29 @@
         "max_tag_check": 1,
         "max_fill": 1,
         "prefetch_as_load": true,
-	"is_pb": true
+	"is_pb": true,
+	"enable_coalescing": true
     },
 
     "PTW": {
     	"pscl5_set": 1,
 	"pscl5_way": 2,
 	"pscl4_set": 1,
-	"pscl4_way": 4,
-	"pscl3_set": 2,
+	"pscl4_way": 2,
+	"pscl3_set": 1,
 	"pscl3_way": 4,
 	"pscl2_set": 4,
 	"pscl2_way": 8,
 	"rq_size": 16,
 	"mshr_size": 5,
 	"max_read": 2,
-	"max_write": 2
+	"max_write": 2,
+	"enable_coalescing": 1
     },
 
     "LLC": {
         "frequency": 4000,
-        "sets": 2048,
+        "sets": 512,
         "ways": 16,
         "rq_size": 32,
         "wq_size": 32,
@@ -183,9 +188,9 @@
         "channel_width": 8,
         "wq_size": 64,
         "rq_size": 64,
-        "tRP": 12.5,
-        "tRCD": 12.5,
-        "tCAS": 12.5,
+        "tRP": 11,
+        "tRCD": 11,
+        "tCAS": 11,
         "turn_around_time": 7.5
     },
 

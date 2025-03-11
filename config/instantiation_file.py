@@ -151,6 +151,12 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
         # TODO[OSM] : prefetch tempo
         if "enable_ptempo" in ptw:
             yield '.enable_ptempo({enable_ptempo})'.format(**ptw)
+        # TODO[OSM] : enable tlb coalescing
+        if "enable_coalescing" in ptw:
+            yield '.enable_coalescing({enable_coalescing})'.format(**ptw)
+        # TODO[OSM] : enable block coalescing
+        if "enable_bcoalescing" in ptw:
+            yield '.enable_bcoalescing({enable_bcoalescing})'.format(**ptw)
 
         yield '.upper_levels({{{}}})'.format(vector_string('&{}_to_{}_queues'.format(ul, ptw['name']) for ul in upper_levels[ptw['name']]['uppers']))
         yield '.lower_level({})'.format('&{}_to_{}_queues'.format(ptw['name'], ptw['lower_level']))
@@ -188,6 +194,11 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             ('skip_tcp', False): '.reset_skip_tcp()',
             ('enable_tcp', True): '.set_enable_tcp()',
             ('enable_tcp', False): '.reset_enable_tcp()',
+            # TODO[OSM] : enable tlb coalescing
+            ('enable_coalescing', True): '.set_enable_coalescing()',
+            ('enable_coalescing', False): '.reset_enable_coalescing()',
+            ('coalescing_translation', True): '.set_coalescing_translation()',
+            ('coalescing_translation', False): '.set_coalescing_translation()',
         }
 
         yield from (v.format(**elem) for k,v in cache_builder_parts.items() if k in elem)

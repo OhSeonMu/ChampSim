@@ -71,6 +71,32 @@ std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa(uint32_t cpu_num, uint64_t
   return {paddr, fault ? minor_fault_penalty : 0};
 }
 
+// TODO[OSM] : enable tlb coalescing
+std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa_coalescing(uint32_t cpu_num, uint64_t vaddr)
+{
+  auto is_find = (vpage_to_ppage_map.find({cpu_num, vaddr >> LOG2_PAGE_SIZE}) != vpage_to_ppage_map.end());
+  if (!is_find) { 
+    auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
+    auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
+    for (unsigned int index = 0; index < SUPER_INDEX_SIZE; index++) {
+      auto alloc_vaddr = champsim::splice_bits(vaddr >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
+      auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, alloc_vaddr}, ppage_front()});
+      // this vpage doesn't yet have a ppage mapping
+      if (fault)
+        ppage_pop();
+    }
+  }
+    
+  auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, vaddr >> LOG2_PAGE_SIZE}, ppage_front()});
+  
+  auto paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
+  if constexpr (champsim::debug_print) {
+    fmt::print("[VMEM] {} paddr: {:x} vaddr: {:x} fault: {}\n", __func__, paddr, vaddr, fault);
+  }
+
+  return {paddr, !(is_find)? minor_fault_penalty : 0};
+}
+
 std::pair<uint64_t, uint64_t> VirtualMemory::get_pte_pa(uint32_t cpu_num, uint64_t vaddr, std::size_t level)
 {
   if (next_pte_page == 0) {
@@ -106,6 +132,6 @@ bool VirtualMemory::check_va_to_pa(uint32_t cpu_num, uint64_t vaddr)
   if (vpage_to_ppage_map.find({cpu_num, vaddr >> LOG2_PAGE_SIZE}) != vpage_to_ppage_map.end()) 
     return true;
 
-  // Not Fine
+  // Not Find
   return false;
 }

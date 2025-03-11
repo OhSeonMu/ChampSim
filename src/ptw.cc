@@ -27,12 +27,12 @@
 #include <fmt/core.h>
 
 PageTableWalker::PageTableWalker(Builder b)
-    : champsim::operable(b.m_freq_scale), upper_levels(b.m_uls), lower_level(b.m_ll), NAME(b.m_name), MSHR_SIZE(b.m_mshr_size), MAX_READ(b.m_max_tag_check),
+    : champsim::operable(b.m_freq_scale), upper_levels(b.m_uls), lower_level(b.m_ll), NAME(b.m_name), MSHR_SIZE(b.m_mshr_size), MAX_READ(b.m_max_tag_check), MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first), 
       // TODO[OSM] : ASAP
       // TODO[OSM] : prefetch tempo
-      // MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first)
-      MAX_FILL(b.m_max_fill), HIT_LATENCY(b.m_latency), vmem(b.m_vmem), CR3_addr(b.m_vmem->get_pte_pa(b.m_cpu, 0, b.m_vmem->pt_levels).first), enable_asap(b.m_enable_asap), enable_ptempo(b.m_enable_ptempo)
-
+      // TODO[OSM] : enable tlb coalescing
+      // TODO[OSM] : enable block coalescing
+      enable_asap(b.m_enable_asap), enable_ptempo(b.m_enable_ptempo), enable_coalescing(b.m_enable_coalescing), enable_bcoalescing(b.m_enable_bcoalescing)
 {
   std::vector<std::array<uint32_t, 3>> local_pscl_dims{};
   std::remove_copy_if(std::begin(b.m_pscl), std::end(b.m_pscl), std::back_inserter(local_pscl_dims), [](auto x) { return std::get<0>(x) == 0; });
@@ -121,9 +121,25 @@ auto PageTableWalker::handle_fill(const mshr_type& fill_mshr) -> std::optional<m
   return step_translation(fwd_mshr);
 }
 
-auto PageTableWalker::step_translation(const mshr_type& source) -> std::optional<mshr_type>
+// auto PageTableWalker::step_translation(const mshr_type& source) -> std::optional<mshr_type>
+auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_type>
 {
   request_type packet;
+  
+  // TODO[OSM] : enable block coalescing 
+  if(enable_coalescing & enable_bcoalescing & source.translation_level == 0) {
+    const auto PTE_SIZE = 8;
+    auto page_in_super_page = SUPER_PAGE_SIZE / PAGE_SIZE;
+    auto pte_in_block = BLOCK_SIZE / PTE_SIZE;
+
+    auto pt_offset = vmem->get_offset(source.v_address, source.translation_level);
+    auto coalescing_pt_offset = champsim::splice_bits(pt_offset, 0, LOG2_SUPER_PAGE_SIZE - LOG2_PAGE_SIZE);
+
+    auto new_pt_offset = ((coalescing_pt_offset / pte_in_block) * (page_in_super_page * pte_in_block) +
+	    (coalescing_pt_offset % pte_in_block)) * PTE_SIZE;
+    source.address = champsim::splice_bits(source.address, new_pt_offset, LOG2_PAGE_SIZE);
+  }
+
   packet.address = source.address;
   packet.v_address = source.v_address;
   packet.pf_metadata = source.pf_metadata;
@@ -187,8 +203,24 @@ long PageTableWalker::operate()
   auto [complete_begin, complete_end] = champsim::get_span_p(std::cbegin(completed), std::cend(completed), fill_bw,
                                                              [cycle = current_cycle](const auto& pkt) { return pkt.event_cycle <= cycle; });
   std::for_each(complete_begin, complete_end, [this](auto& mshr_entry) {
+    // TODO[OSM] : enable block coalescing 
+    /*
+    if(enable_coalescing & enable_bcoalescing & mshr_entry.translation_level == 0) {
+      auto pt_offset = vmem->get_offset(mshr_entry.v_address, mshr_entry.translation_level);
+      auto page_in_super_page = SUPER_PAGE_SIZE / PAGE_SIZE;
+      auto super_page_offset = pt_offset % page_in_super_page;
+      auto data = mshr_entry.data + super_page_offset * PAGE_SIZE;
+      for (auto ret : mshr_entry.to_return)
+        ret->emplace_back(mshr_entry.v_address, mshr_entry.v_address, data, mshr_entry.pf_metadata, mshr_entry.instr_depend_on_me);
+    }
+    else {
+      for (auto ret : mshr_entry.to_return)
+        ret->emplace_back(mshr_entry.v_address, mshr_entry.v_address, mshr_entry.data, mshr_entry.pf_metadata, mshr_entry.instr_depend_on_me);
+    }
+    */
     for (auto ret : mshr_entry.to_return)
       ret->emplace_back(mshr_entry.v_address, mshr_entry.v_address, mshr_entry.data, mshr_entry.pf_metadata, mshr_entry.instr_depend_on_me);
+
     // TODO[OSM] : prefetch tempo
     if (this->enable_ptempo & mshr_entry.pf_metadata)
 	this->prefetch_tempo(mshr_entry);
@@ -240,7 +272,11 @@ void PageTableWalker::finish_packet(const response_type& packet)
 
   auto finish_last_step = [this](auto& mshr_entry) {
     uint64_t penalty;
-    std::tie(mshr_entry.data, penalty) = this->vmem->va_to_pa(mshr_entry.cpu, mshr_entry.v_address);
+    // TODO[OSM] : enable tlb coalescing
+    if (enable_coalescing)
+      std::tie(mshr_entry.data, penalty) = this->vmem->va_to_pa_coalescing(mshr_entry.cpu, mshr_entry.v_address);
+    else	    
+      std::tie(mshr_entry.data, penalty) = this->vmem->va_to_pa(mshr_entry.cpu, mshr_entry.v_address);
     mshr_entry.event_cycle = this->current_cycle + (this->warmup ? 0 : penalty + HIT_LATENCY);
 
     if constexpr (champsim::debug_print) {
