@@ -22,13 +22,14 @@ from . import modules
 from . import util
 
 # TODO[OSM] : enable tlb coalescing
-default_root = { 'block_size': 64, 'page_size': 4096, 'super_page_size': 32768, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
+default_root = { 'block_size': 64, 'page_size': 4096, 'super_page_size': 4096, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
 default_core = { 'frequency' : 4000 }
 # TODO[OSM] : Change Default PMEM(16G)/VMEM(4level) value
 # TODO[OSM] : Idle Memory Latency
 # default_pmem = { 'name': 'DRAM', 'frequency': 3200, 'channels': 1, 'ranks': 1, 'banks': 8, 'rows': 65536, 'columns': 128, 'lines_per_column': 8, 'channel_width': 8, 'wq_size': 64, 'rq_size': 64, 'tRP': 12.5, 'tRCD': 12.5, 'tCAS': 12.5, 'turn_around_time': 7.5 }
 default_pmem = { 'name': 'DRAM', 'frequency': 3200, 'channels': 1, 'ranks': 1, 'banks': 8, 'rows': 65536, 'columns': 128, 'lines_per_column': 8, 'channel_width': 8, 'wq_size': 64, 'rq_size': 64, 'tRP': 12.5, 'tRCD': 12.5, 'tCAS': 12.5, 'turn_around_time': 7.5, 'idle_memory': 0}
-default_vmem = { 'pte_page_size': (1 << 12), 'num_levels': 5, 'minor_fault_penalty': 200 }
+# TODO[OSM] : enable tlb coalescing
+default_vmem = { 'pte_page_size': (1 << 12), 'super_pte_page_size': (1 << 12), 'num_levels': 5, 'minor_fault_penalty': 200 }
 # default_pmem = { 'name': 'DRAM', 'frequency': 3200, 'channels': 1, 'ranks': 2, 'banks': 16, 'rows': 65536, 'columns': 128, 'lines_per_column': 8, 'channel_width': 8, 'wq_size': 64, 'rq_size': 64, 'tRP': 12.5, 'tRCD': 12.5, 'tCAS': 12.5, 'turn_around_time': 7.5 }
 # default_vmem = { 'pte_page_size': (1 << 12), 'num_levels': 4, 'minor_fault_penalty': 200 }
 
@@ -199,8 +200,9 @@ def parse_normalized(cores, caches, ptws, pmem, vmem, merged_configs, branch_con
     tlb_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('ITLB', 'DTLB')))
     l1d_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('L1I', 'L1D')))
     caches = util.combine_named(
+            # TODO [OSM] : enable tlb coalescing (Need Modification)
             # TLBs use page offsets, Caches use block offsets
-            ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['page_size']) + ')'} for c in tlb_path),
+            ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['super_page_size']) + ')'} for c in tlb_path),
             ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['block_size']) + ')'} for c in l1d_path),
 
             caches.values(),

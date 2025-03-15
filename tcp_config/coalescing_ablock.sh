@@ -2,7 +2,7 @@
     "executable_name": "champsim",
     "block_size": 64,
     "page_size": 4096,
-    "super_page_size": 4096,
+    "super_page_size": 32768,
     "heartbeat_frequency": 10000000,
     "num_cores": 1,
 
@@ -52,7 +52,8 @@
         "prefetch_as_load": false,
         "virtual_prefetch": true,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no_instr"
+        "prefetcher": "no_instr",
+	"coalescing_translation": true
     },
 
     "L1D": {
@@ -68,7 +69,8 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no"
+        "prefetcher": "no",
+	"coalescing_translation": true
     },
 
     "L2C": {
@@ -97,6 +99,7 @@
         "latency": 1,
         "max_tag_check": 2,
         "max_fill": 2,
+        "_offset_bits": 15,
         "prefetch_as_load": false
     },
 
@@ -110,6 +113,7 @@
         "latency": 1,
         "max_tag_check": 2,
         "max_fill": 2,
+        "_offset_bits": 15,
         "prefetch_as_load": false
     },
 
@@ -123,6 +127,7 @@
         "latency": 8,
         "max_tag_check": 1,
         "max_fill": 1,
+        "_offset_bits": 15,
         "prefetch_as_load": false
     },
 
@@ -137,6 +142,7 @@
         "max_tag_check": 1,
         "max_fill": 1,
         "prefetch_as_load": true,
+        "_offset_bits": 15,
 	"is_pb": true
     },
 
@@ -153,7 +159,10 @@
 	"mshr_size": 5,
 	"max_read": 2,
 	"max_write": 2,
-	"enable_calloc": 1
+	"enable_calloc": 1,
+	"enable_coalescing": 1,
+	"enable_bcoalescing": 1,
+	"enable_abcoalescing": 1
     },
 
     "LLC": {

@@ -52,7 +52,8 @@
         "prefetch_as_load": false,
         "virtual_prefetch": true,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no_instr"
+        "prefetcher": "no_instr",
+	"coalescing_translation": true
     },
 
     "L1D": {
@@ -68,7 +69,8 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no"
+        "prefetcher": "no",
+	"coalescing_translation": true
     },
 
     "L2C": {
@@ -97,8 +99,8 @@
         "latency": 1,
         "max_tag_check": 2,
         "max_fill": 2,
-        "prefetch_as_load": false,
-	"enable_coalescing": true
+        "_offset_bits": 15,
+        "prefetch_as_load": false
     },
 
     "DTLB": {
@@ -111,8 +113,8 @@
         "latency": 1,
         "max_tag_check": 2,
         "max_fill": 2,
-        "prefetch_as_load": false,
-	"enable_coalescing": true
+        "_offset_bits": 15,
+        "prefetch_as_load": false
     },
 
     "STLB": {
@@ -125,8 +127,8 @@
         "latency": 8,
         "max_tag_check": 1,
         "max_fill": 1,
-        "prefetch_as_load": false,
-	"enable_coalescing": true
+        "_offset_bits": 15,
+        "prefetch_as_load": false
     },
 
     "PB": {
@@ -140,8 +142,8 @@
         "max_tag_check": 1,
         "max_fill": 1,
         "prefetch_as_load": true,
-	"is_pb": true,
-	"enable_coalescing": true
+        "_offset_bits": 15,
+	"is_pb": true
     },
 
     "PTW": {
@@ -157,13 +159,14 @@
 	"mshr_size": 5,
 	"max_read": 2,
 	"max_write": 2,
+	"enable_calloc": 1,
 	"enable_coalescing": 1,
 	"enable_bcoalescing": 1
     },
 
     "LLC": {
         "frequency": 4000,
-        "sets": 512,
+        "sets": 2048,
         "ways": 16,
         "rq_size": 32,
         "wq_size": 32,
@@ -197,6 +200,7 @@
 
     "virtual_memory": {
         "pte_page_size": 4096,
+	"super_pte_page_size": 32768,
         "num_levels": 4,
         "minor_fault_penalty": 200
     }

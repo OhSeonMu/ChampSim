@@ -163,11 +163,8 @@ class CACHE : public champsim::operable
     static mshr_type merge(mshr_type predecessor, mshr_type successor);
   };
 
-  // TODO[OSM] : enable tlb coalescing
-  // bool try_hit(const tag_lookup_type& handle_pkt);
-  // bool handle_fill(const mshr_type& fill_mshr);
-  bool try_hit(tag_lookup_type& handle_pkt);
-  bool handle_fill(mshr_type& fill_mshr);
+  bool try_hit(const tag_lookup_type& handle_pkt);
+  bool handle_fill(const mshr_type& fill_mshr);
   bool handle_miss(const tag_lookup_type& handle_pkt);
   bool handle_write(const tag_lookup_type& handle_pkt);
   void finish_packet(const response_type& packet);

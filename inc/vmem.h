@@ -47,9 +47,12 @@ public:
   const uint64_t minor_fault_penalty;
   const std::size_t pt_levels;
   const uint64_t pte_page_size; // Size of a PTE page
+  // TODO[OSM] : enable tlb coalescing
+  const uint64_t super_pte_page_size; // Size of a PTE page
 
   // capacity and pg_size are measured in bytes, and capacity must be a multiple of pg_size
-  VirtualMemory(uint64_t pg_size, std::size_t page_table_levels, uint64_t minor_penalty, MEMORY_CONTROLLER& dram);
+  // TODO[OSM] : enable tlb coalescing
+  VirtualMemory(uint64_t pg_size, uint64_t super_pg_size, std::size_t page_table_levels, uint64_t minor_penalty, MEMORY_CONTROLLER& dram);
   uint64_t shamt(std::size_t level) const;
   uint64_t get_offset(uint64_t vaddr, std::size_t level) const;
   std::size_t available_ppages() const;
@@ -58,7 +61,7 @@ public:
   // TODO[OSM] : prefetch tlb
   bool check_va_to_pa(uint32_t cpu_num, uint64_t vaddr);
   // TODO[OSM] : enable tlb coalescing
-  std::pair<uint64_t, uint64_t> va_to_pa_coalescing(uint32_t cpu_num, uint64_t vaddr);
+  std::pair<uint64_t, uint64_t> va_to_pa_coalescing(uint32_t cpu_num, uint64_t vaddr, bool enable_coalescing);
 };
 
 #endif

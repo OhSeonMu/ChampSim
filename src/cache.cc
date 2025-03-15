@@ -82,18 +82,10 @@ CACHE::BLOCK::BLOCK(mshr_type mshr)
 {
 }
 
-// TODO[OSM] : enable tlb coalescing
-// bool CACHE::handle_fill(const mshr_type& fill_mshr)
-bool CACHE::handle_fill(mshr_type& fill_mshr)
+bool CACHE::handle_fill(const mshr_type& fill_mshr)
 {
   cpu = fill_mshr.cpu;
   
-  // TODO[OSM] : enable tlb coalescing
-  auto tmp_address = fill_mshr.address;
-  if (enable_coalescing) {  
-      fill_mshr.address = fill_mshr.address & ~champsim::bitmask(LOG2_SUPER_PAGE_SIZE);
-  }
-
   // TODO[OSM] : prefetch tlb
   // TODO[OSM] : prefetch tlb with cache line
   if ((this->is_pb & (!fill_mshr.prefetch_from_this)) || fill_mshr.skip_fill) {
@@ -110,10 +102,6 @@ bool CACHE::handle_fill(mshr_type& fill_mshr)
     sim_stats.total_finish_packet_latency += current_cycle - (fill_mshr.finish_packet_cycle);
   
     auto metadata_thru = fill_mshr.pf_metadata;
-
-    // TODO[OSM] : enable tlb coalescing
-    if (enable_coalescing)
-      fill_mshr.address = tmp_address;
 
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
     for (auto ret : fill_mshr.to_return)
@@ -162,7 +150,7 @@ bool CACHE::handle_fill(mshr_type& fill_mshr)
 
       success = lower_level->add_wq(writeback_packet);
     }
-
+    
     if (success) {
       auto evicting_address = (ever_seen_data ? way->address : way->v_address) & ~champsim::bitmask(match_offset_bits ? 0 : OFFSET_BITS);
 
@@ -180,12 +168,7 @@ bool CACHE::handle_fill(mshr_type& fill_mshr)
                                     champsim::to_underlying(fill_mshr.type), false);
 
       way->pf_metadata = metadata_thru;
-      // TODO[OSM] : enable tlb coalescing
-      if (enable_coalescing) {
-        way->data = fill_mshr.data -
-	        PAGE_SIZE * ((fill_mshr.v_address >> LOG2_PAGE_SIZE) - (fill_mshr.address >> LOG2_PAGE_SIZE));
-       }
-
+      
       // TODO[OSM] : For Prefetcher hit
       if (fill_mshr.prefetch_success)
         way->prefetch = false;
@@ -199,10 +182,6 @@ bool CACHE::handle_fill(mshr_type& fill_mshr)
     impl_update_replacement_state(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, fill_mshr.address, fill_mshr.ip, 0,
                                   champsim::to_underlying(fill_mshr.type), false);
   }
-
-  // TODO[OSM] : enable tlb coalescing
-  if (enable_coalescing) 
-    fill_mshr.address = tmp_address;
 
   if (success) {
     // COLLECT STATS
@@ -225,18 +204,10 @@ bool CACHE::handle_fill(mshr_type& fill_mshr)
   return success;
 }
 
-// TODO[OSM] : enable tlb coalescing
-// bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
-bool CACHE::try_hit(tag_lookup_type& handle_pkt)
+bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 {
   cpu = handle_pkt.cpu;
    
-  // TODO[OSM] : enable tlb coalescing
-  auto tmp_address = handle_pkt.address;
-  if (enable_coalescing) {  
-      handle_pkt.address = handle_pkt.address & ~champsim::bitmask(LOG2_SUPER_PAGE_SIZE);
-  }
-
   // access cache
   auto [set_begin, set_end] = get_set_span(handle_pkt.address);
   auto way = std::find_if(set_begin, set_end,
@@ -249,6 +220,13 @@ bool CACHE::try_hit(tag_lookup_type& handle_pkt)
                handle_pkt.address, handle_pkt.v_address, handle_pkt.data, get_set_index(handle_pkt.address), std::distance(set_begin, way), hit ? "HIT" : "MISS",
                access_type_names.at(champsim::to_underlying(handle_pkt.type)), current_cycle);
   }
+
+  // TODO[OSM] : TEST
+  /*
+  if constexpr (champsim::debug_print_2) {
+    fmt::print("[{}] {} offset {} \n", NAME, __func__, OFFSET_BITS);
+  }
+  */
 
   // update prefetcher on load instructions and prefetches from upper levels
   auto metadata_thru = handle_pkt.pf_metadata;
@@ -271,20 +249,9 @@ bool CACHE::try_hit(tag_lookup_type& handle_pkt)
     impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, way->address, handle_pkt.ip, 0,
                                   champsim::to_underlying(handle_pkt.type), true);
 
-    // TODO[OSM] : enable tlb coalescing
-    if (enable_coalescing) {
-      auto data = way->data + 
-	      PAGE_SIZE * ((handle_pkt.v_address >> LOG2_PAGE_SIZE) - (handle_pkt.address >> LOG2_PAGE_SIZE));
-      handle_pkt.address = tmp_address;
-      response_type response{handle_pkt.address, handle_pkt.v_address, data, metadata_thru, handle_pkt.instr_depend_on_me};
-      for (auto ret : handle_pkt.to_return)
-        ret->push_back(response);
-    }
-    else { 
-      response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
-      for (auto ret : handle_pkt.to_return)
-        ret->push_back(response);
-    }
+    response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
+    for (auto ret : handle_pkt.to_return)
+      ret->push_back(response);
 
     way->dirty |= (handle_pkt.type == access_type::WRITE);
 
@@ -308,10 +275,6 @@ bool CACHE::try_hit(tag_lookup_type& handle_pkt)
   } 
   // TODO[OSM] : perfect cache for PTW
   else {
-    // TODO[OSM] : enable tlb coalescing
-    if (enable_coalescing) 
-      handle_pkt.address = tmp_address;
-
     if (((1 << champsim::to_underlying(handle_pkt.type)) & perf_activate_mask) && (perfect_cache || perfect_tlb)) {
 	mshr_type to_allocate{handle_pkt, current_cycle};
 	if (perfect_tlb) {
@@ -540,8 +503,7 @@ long CACHE::operate()
     auto [fill_begin, fill_end] =
         champsim::get_span_p(std::cbegin(q.get()), std::cend(q.get()), fill_bw, [cycle = current_cycle](const auto& x) { return x.event_cycle <= cycle; });
     auto complete_end = std::find_if_not(fill_begin, fill_end, [this](const auto& x) { 
-    		    mshr_type tmp_x = x;
-		    return this->handle_fill(tmp_x); });
+		    return this->handle_fill(x); });
     fill_bw -= std::distance(fill_begin, complete_end);
     q.get().erase(fill_begin, complete_end);
   }
@@ -581,8 +543,7 @@ long CACHE::operate()
 
   // Perform tag checks
   auto do_tag_check = [this](auto& pkt) {
-    tag_lookup_type tmp_pkt = pkt;
-    if (this->try_hit(tmp_pkt))
+    if (this->try_hit(pkt))
       return true;
     if (pkt.type == access_type::WRITE && !this->match_offset_bits)
       return this->handle_write(pkt); // Treat writes (that is, writebacks) like fills
@@ -726,14 +687,76 @@ void CACHE::finish_packet(const response_type& packet)
 
 void CACHE::finish_translation(const response_type& packet)
 {
-  auto matches_vpage = [page_num = packet.v_address >> LOG2_PAGE_SIZE](const auto& entry) {
-    return (entry.v_address >> LOG2_PAGE_SIZE) == page_num;
+  // TODO[OSM] : enable tlb coalescing
+  auto matches_vpage = [this, page_num = packet.v_address >> LOG2_PAGE_SIZE](const auto& entry) {
+    auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
+    auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
+    return (this->coalescing_translation) ? 
+	    (entry.v_address >> LOG2_SUPER_PAGE_SIZE) == (page_num >> LOG2_SUPER_INDEX_SIZE) :
+	    (entry.v_address >> LOG2_PAGE_SIZE) == page_num;
   };
+
   auto mark_translated = [p_page = packet.data, this](auto& entry) {
     // TODO[OSM] : prefetch tlb
     if ((!entry.is_translated) && (entry.translate_issued)) {
-	    entry.address = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE); // translated address
-	    entry.is_translated = true;                                                     // This entry is now translated
+      // TODO[OSM] : enable tlb coalescing
+      if (coalescing_translation) {
+        auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
+        auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
+        auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, 0, LOG2_SUPER_INDEX_SIZE);
+        auto new_p_page = p_page + 
+	    (((entry.v_address >> LOG2_PAGE_SIZE) - (alloc_vaddr)) << LOG2_PAGE_SIZE);
+        entry.address = champsim::splice_bits(new_p_page, entry.v_address, LOG2_PAGE_SIZE);
+	
+	// TODO[OSM] : TEST
+	/*
+	uint64_t penalty;
+	uint64_t pa;
+        if constexpr (champsim::debug_print_2) {
+           fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
+	}
+	for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
+           auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
+	   std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
+           if constexpr (champsim::debug_print_2) {
+             fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
+	   }
+	}
+
+        if constexpr (champsim::debug_print_2) {
+           fmt::print("[{}_TRANSLATE] finish_translation check return address\n", this->NAME);
+	}
+	std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, entry.v_address);
+        pa = champsim::splice_bits(pa, entry.v_address, LOG2_PAGE_SIZE);
+        auto return_pa = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE);
+        if constexpr (champsim::debug_print_2) {
+            fmt::print("[{}_TRANSLATE] real paddr: {:#x} calculate paddr: {:#x} return paddr: {:#x} vaddr: {:#x} \n", 
+	      this->NAME, pa, entry.address, return_pa, entry.v_address);
+        }
+	*/
+      }
+      else {
+        entry.address = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE); // translated address
+	
+	// TODO[OSM] : TEST
+	/*
+        auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
+        auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
+	uint64_t penalty;
+	uint64_t pa;
+        if constexpr (champsim::debug_print_2) {
+           fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
+	}
+	for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
+           auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
+	   std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
+           if constexpr (champsim::debug_print_2) {
+             fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
+          }
+	}
+	*/
+      }
+      entry.is_translated = true;                                                     // This entry is now translated
     }
 
     if constexpr (champsim::debug_print) {
@@ -748,8 +771,16 @@ void CACHE::finish_translation(const response_type& packet)
 
   // Find all packets that match the page of the returned packet
   for (auto& entry : inflight_tag_check) {
-    if ((entry.v_address >> LOG2_PAGE_SIZE) == (packet.v_address >> LOG2_PAGE_SIZE)) {
-      mark_translated(entry);
+    // TODO[OSM] : enable tlb coalescing
+    if (coalescing_translation) {
+      if ((entry.v_address >> LOG2_SUPER_PAGE_SIZE) == (packet.v_address >> LOG2_SUPER_PAGE_SIZE)) {
+        mark_translated(entry);
+      }
+    } 
+    else {
+      if ((entry.v_address >> LOG2_PAGE_SIZE) == (packet.v_address >> LOG2_PAGE_SIZE)) {
+        mark_translated(entry);
+      }
     }
   }
 }

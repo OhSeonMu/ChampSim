@@ -18,10 +18,11 @@ import operator
 
 from . import util
 
-# TODO[OSM[ : Idle Memory Latency
+# TODO[OSM] : Idle Memory Latency
 # pmem_fmtstr = 'MEMORY_CONTROLLER {name}{{{frequency}, {io_freq}, {tRP}, {tRCD}, {tCAS}, {turn_around_time}, {{{_ulptr}}}}};'
 pmem_fmtstr = 'MEMORY_CONTROLLER {name}{{{frequency}, {io_freq}, {tRP}, {tRCD}, {tCAS}, {turn_around_time}, {{{_ulptr}}}, {idle_memory}}};'
-vmem_fmtstr = 'VirtualMemory vmem{{{pte_page_size}, {num_levels}, {minor_fault_penalty}, {dram_name}}};'
+# TODO[OSM] : enable tlb coalescing
+vmem_fmtstr = 'VirtualMemory vmem{{{pte_page_size}, {super_pte_page_size}, {num_levels}, {minor_fault_penalty}, {dram_name}}};'
 
 queue_fmtstr = 'champsim::channel {name}{{{rq_size}, {pq_size}, {wq_size}, {_offset_bits}, {_queue_check_full_addr:b}}};'
 
@@ -152,11 +153,15 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
         if "enable_ptempo" in ptw:
             yield '.enable_ptempo({enable_ptempo})'.format(**ptw)
         # TODO[OSM] : enable tlb coalescing
+        if "enable_calloc" in ptw:
+            yield '.enable_calloc({enable_calloc})'.format(**ptw)
         if "enable_coalescing" in ptw:
             yield '.enable_coalescing({enable_coalescing})'.format(**ptw)
         # TODO[OSM] : enable block coalescing
         if "enable_bcoalescing" in ptw:
             yield '.enable_bcoalescing({enable_bcoalescing})'.format(**ptw)
+        if "enable_abcoalescing" in ptw:
+            yield '.enable_abcoalescing({enable_abcoalescing})'.format(**ptw)
 
         yield '.upper_levels({{{}}})'.format(vector_string('&{}_to_{}_queues'.format(ul, ptw['name']) for ul in upper_levels[ptw['name']]['uppers']))
         yield '.lower_level({})'.format('&{}_to_{}_queues'.format(ptw['name'], ptw['lower_level']))

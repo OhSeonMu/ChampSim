@@ -243,7 +243,7 @@ long MEMORY_CONTROLLER::operate()
           bool row_buffer_hit = (channel.bank_request[op_idx].open_row == op_row);
 
           // TODO[OSM] : change for dram latency 
-  	  row_buffer_hit = 1;
+  	  // row_buffer_hit = 1;
 
           // this bank is now busy
           channel.bank_request[op_idx] = {true, row_buffer_hit, op_row, current_cycle + tCAS + (row_buffer_hit ? 0 : tRP + tRCD), iter_next_schedule};
@@ -261,14 +261,17 @@ long MEMORY_CONTROLLER::operate()
           ++channel.sim_stats.bank_access_fail;
     
           // TODO[OSM] : change for dram latency 
+	  /*
 	  if (!(iter_next_schedule->value().scheduled_checked))
 	    insert_bank = true;
 	  iter_next_schedule->value().scheduled_checked = true;
+	  */
         }
       }
     } 
 
     // TODO[OSM] : change for dram latency 
+    /*
     if (channel.write_mode) {
       std::for_each(std::begin(channel.WQ), std::end(channel.WQ), [](auto& req) {
         if (req.has_value())
@@ -278,6 +281,7 @@ long MEMORY_CONTROLLER::operate()
         if (req.has_value())
 	  req.value().scheduled_checked = false;});
     }
+    */
   }
   return progress;
 }

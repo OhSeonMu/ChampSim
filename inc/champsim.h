@@ -15,6 +15,7 @@
  */
 
 #ifndef CHAMPSIM_H
+// #define DEBUG_PRINT
 #define CHAMPSIM_H
 
 // TODO[OSM] : for debugging

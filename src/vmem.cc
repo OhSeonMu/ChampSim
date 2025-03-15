@@ -23,9 +23,10 @@
 #include "dram_controller.h"
 #include <fmt/core.h>
 
-VirtualMemory::VirtualMemory(uint64_t page_table_page_size, std::size_t page_table_levels, uint64_t minor_penalty, MEMORY_CONTROLLER& dram)
+// TODO[OSM] : enable tlb coalescing
+VirtualMemory::VirtualMemory(uint64_t page_table_page_size, uint64_t super_page_table_page_size, std::size_t page_table_levels, uint64_t minor_penalty, MEMORY_CONTROLLER& dram)
     : next_ppage(VMEM_RESERVE_CAPACITY), last_ppage(1ull << (LOG2_PAGE_SIZE + champsim::lg2(page_table_page_size / PTE_BYTES) * page_table_levels)),
-      minor_fault_penalty(minor_penalty), pt_levels(page_table_levels), pte_page_size(page_table_page_size)
+      minor_fault_penalty(minor_penalty), pt_levels(page_table_levels), pte_page_size(page_table_page_size), super_pte_page_size(super_page_table_page_size)
 {
   assert(page_table_page_size > 1024);
   assert(page_table_page_size == (1ull << champsim::lg2(page_table_page_size)));
@@ -72,29 +73,50 @@ std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa(uint32_t cpu_num, uint64_t
 }
 
 // TODO[OSM] : enable tlb coalescing
-std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa_coalescing(uint32_t cpu_num, uint64_t vaddr)
+std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa_coalescing(uint32_t cpu_num, uint64_t vaddr, bool enable_coalescing)
 {
+  auto SUPER_INDEX_SIZE = super_pte_page_size / PAGE_SIZE;
+  auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
   auto is_find = (vpage_to_ppage_map.find({cpu_num, vaddr >> LOG2_PAGE_SIZE}) != vpage_to_ppage_map.end());
+  uint64_t paddr;
   if (!is_find) { 
-    auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
-    auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
     for (unsigned int index = 0; index < SUPER_INDEX_SIZE; index++) {
       auto alloc_vaddr = champsim::splice_bits(vaddr >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
       auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, alloc_vaddr}, ppage_front()});
       // this vpage doesn't yet have a ppage mapping
       if (fault)
         ppage_pop();
+      if (enable_coalescing) {
+        if (index == 0)
+	  paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
+      }
+      else {
+        if (alloc_vaddr == (vaddr >> LOG2_PAGE_SIZE)) {
+	  paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
+	}
+      }
     }
   }
+  else {
+      if (enable_coalescing) {
+          auto alloc_vaddr = champsim::splice_bits(vaddr >> LOG2_PAGE_SIZE, 0, LOG2_SUPER_INDEX_SIZE);
+          auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, alloc_vaddr}, ppage_front()});
+	  paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
+      }
+      else {
+          auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, vaddr >> LOG2_PAGE_SIZE}, ppage_front()});
+	  paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
+      }
+  }
     
-  auto [ppage, fault] = vpage_to_ppage_map.insert({{cpu_num, vaddr >> LOG2_PAGE_SIZE}, ppage_front()});
-  
-  auto paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
   if constexpr (champsim::debug_print) {
-    fmt::print("[VMEM] {} paddr: {:x} vaddr: {:x} fault: {}\n", __func__, paddr, vaddr, fault);
+    auto [new_ppage, new_fault] = vpage_to_ppage_map.insert({{cpu_num, vaddr >> LOG2_PAGE_SIZE}, ppage_front()});
+    auto real_paddr = champsim::splice_bits(new_ppage->second, vaddr, LOG2_PAGE_SIZE);
+    fmt::print("[VMEM] {} paddr: {:x} real_paddr: {:x} vaddr: {:x} fault: {}\n", __func__, paddr, real_paddr, vaddr, !(is_find));
   }
 
-  return {paddr, !(is_find)? minor_fault_penalty : 0};
+  // return {paddr, !(is_find)? minor_fault_penalty * SUPER_INDEX_SIZE: 0};
+  return {paddr, !(is_find)? minor_fault_penalty: 0};
 }
 
 std::pair<uint64_t, uint64_t> VirtualMemory::get_pte_pa(uint32_t cpu_num, uint64_t vaddr, std::size_t level)

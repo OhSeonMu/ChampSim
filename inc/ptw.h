@@ -103,8 +103,10 @@ public:
   bool enable_ptempo; 
 
   // TODO[OSM] : enable tlb coalescing
+  bool enable_calloc;
   bool enable_coalescing;
   bool enable_bcoalescing;
+  bool enable_abcoalescing;
 
   class Builder
   {
@@ -127,8 +129,10 @@ public:
     bool m_enable_ptempo{};
   
     // TODO[OSM] : enable tlb coalescing
+    bool m_enable_calloc{};
     bool m_enable_coalescing{};
     bool m_enable_bcoalescing{};
+    bool m_enable_abcoalescing{};
 
     friend class PageTableWalker;
 
@@ -201,6 +205,11 @@ public:
       return *this;
     }
     // TODO[OSM] : enable tlb coalescing
+    Builder& enable_calloc(bool enable_calloc_)
+    {
+      m_enable_calloc = enable_calloc_;
+      return *this;
+    }
     Builder& enable_coalescing(bool enable_coalescing_)
     {
       m_enable_coalescing = enable_coalescing_;
@@ -209,6 +218,11 @@ public:
     Builder& enable_bcoalescing(bool enable_bcoalescing_)
     {
       m_enable_bcoalescing = enable_bcoalescing_;
+      return *this;
+    }
+    Builder& enable_abcoalescing(bool enable_abcoalescing_)
+    {
+      m_enable_abcoalescing = enable_abcoalescing_;
       return *this;
     }
   };

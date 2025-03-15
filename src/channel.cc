@@ -37,6 +37,12 @@ bool do_collision_for(Iter begin, Iter end, champsim::channel::request_type& pac
   // (already translated) X.
   if (auto found = std::find_if(begin, end, [addr = packet.address, shamt](const auto& x) { return (x.address >> shamt) == (addr >> shamt); });
       found != end && packet.is_translated == found->is_translated) {
+    // TODO[OSM] : TEST
+    /*
+    if constexpr (champsim::debug_print_2) {
+    fmt::print("[channel] {} v_address: {:#x} is_translated: {:#x} \n", __func__, found->v_address, found->is_translated);
+    }
+    */
     func(packet, *found);
     return true;
   }
@@ -88,6 +94,12 @@ void champsim::channel::check_collision()
       sim_stats.WQ_FORWARD++;
       rq_it = RQ.erase(rq_it);
     } else if (do_collision_for_merge(std::begin(RQ), rq_it, *rq_it, read_shamt)) {
+      // TODO[OSM] : TEST
+      /*
+      if constexpr (champsim::debug_print_2) {
+      fmt::print("[channel] {} v_address: {:#x}\n", __func__, rq_it->v_address);
+      }
+      */
       sim_stats.RQ_MERGED++;
       rq_it = RQ.erase(rq_it);
     } else {
@@ -118,10 +130,13 @@ bool champsim::channel::do_add_queue(R& queue, std::size_t queue_size, const typ
 
   // check occupancy
   if (std::size(queue) >= queue_size) {
-    if constexpr (champsim::debug_print) {
+    // TODO[OSM] : TEST
+    /*
+    if constexpr (champsim::debug_print_2) {
       fmt::print("[channel] {} instr_id: {} address: {:#x} v_address: {:#x} type: {} FULL\n", __func__, packet.instr_id, packet.address, packet.v_address,
           access_type_names.at(champsim::to_underlying(packet.type)));
     }
+    */
     return false; // cannot handle this request
   }
 
