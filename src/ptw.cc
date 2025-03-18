@@ -58,7 +58,7 @@ auto PageTableWalker::handle_read(const request_type& handle_pkt, channel_type* 
   walk_init =
       std::accumulate(std::begin(pscl_hits), std::end(pscl_hits), std::optional<pscl_entry>(walk_init), [](auto x, auto& y) { return y.value_or(*x); }).value();
 
-  auto walk_offset = vmem->get_offset(handle_pkt.address, walk_init.level) * PTE_BYTES;
+  auto walk_offset = vmem->get_offset(handle_pkt.address, walk_init.level + 1) * PTE_BYTES;
 
   mshr_type fwd_mshr{handle_pkt, walk_init.level};
   fwd_mshr.address = champsim::splice_bits(walk_init.ptw_addr, walk_offset, LOG2_PAGE_SIZE);
@@ -79,6 +79,15 @@ auto PageTableWalker::handle_read(const request_type& handle_pkt, channel_type* 
     if (walk_init.level != 0) {
       this->handle_read_asap(handle_pkt, ul, 0);
     } 
+  }
+
+  // TODO[OSM] : TEST
+  if constexpr (champsim::debug_print) {
+    if (vmem->get_offset(fwd_mshr.address, 0) != vmem->get_offset(fwd_mshr.v_address, walk_init.level + 1)) {
+      fmt::print("[{}] {} offset: {} v_offset: {} translation_level: {}\n", NAME, __func__, 
+      vmem->get_offset(fwd_mshr.address, 0),
+      vmem->get_offset(fwd_mshr.v_address, walk_init.level), walk_init.level);
+    }
   }
 
   return step_translation(fwd_mshr);
@@ -118,6 +127,15 @@ auto PageTableWalker::handle_fill(const mshr_type& fill_mshr) -> std::optional<m
   fwd_mshr.translation_level = fill_mshr.translation_level - 1;
   fwd_mshr.event_cycle = std::numeric_limits<uint64_t>::max();
 
+  // TODO[OSM] : TEST
+  if constexpr (champsim::debug_print) {
+    if (vmem->get_offset(fwd_mshr.address, 0) != vmem->get_offset(fwd_mshr.v_address, fwd_mshr.translation_level + 1)) {
+      fmt::print("[{}] {} offset: {} v_offset: {} translation_level: {}\n", NAME, __func__, 
+      vmem->get_offset(fwd_mshr.address, 0),
+      vmem->get_offset(fwd_mshr.v_address, fwd_mshr.translation_level + 1), fwd_mshr.translation_level);
+    }
+  }
+
   return step_translation(fwd_mshr);
 }
 
@@ -127,11 +145,11 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
   request_type packet;
   
   // TODO[OSM] : enable block coalescing 
-  if(enable_coalescing & enable_bcoalescing & source.translation_level == 0) {
+  if(enable_coalescing & enable_bcoalescing & (source.translation_level == 0)) {
     const auto PTE_SIZE = 8;
     auto page_in_super = SUPER_PAGE_SIZE / PAGE_SIZE;
     auto pte_in_block = BLOCK_SIZE / PTE_SIZE;
-    auto pt_offset = vmem->get_offset(source.v_address, source.translation_level);
+    auto pt_offset = vmem->get_offset(source.v_address, source.translation_level + 1);
 
     auto lage_set = pt_offset >> (champsim::lg2(pte_in_block) + champsim::lg2(page_in_super));
     auto block_set = (pt_offset & champsim::bitmask(champsim::lg2(pte_in_block) + champsim::lg2(page_in_super))) 
@@ -143,9 +161,20 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
     pte_in_block * page_in_super * lage_set + block_set + pte_in_block * small_set;
 
     auto origin_address = source.address;
-    source.address = champsim::splice_bits(source.address, new_pt_offset, champsim::lg2(PAGE_SIZE/PTE_SIZE));
+    source.address = champsim::splice_bits(source.address, new_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
+
     if constexpr (champsim::debug_print) {
-      fmt::print("[{}] step_translation new_address: {:#x} address: {:#x} new_offset: {:d} offset: {:d} abcoalescing {:d} \n", NAME, source.address, origin_address, new_pt_offset, pt_offset, enable_abcoalescing);
+      if ((source.address >> LOG2_PAGE_SIZE) != (origin_address >> LOG2_PAGE_SIZE)) {
+        fmt::print("[{}] check_pfn new_address_pfn: {:#x} address_pfn: {:#x}\n", NAME, 
+        source.address >> LOG2_PAGE_SIZE, origin_address >> LOG2_PAGE_SIZE);
+      }
+      if (vmem->get_offset(origin_address, source.translation_level) !=
+          vmem->get_offset(source.v_address, source.translation_level + 1)) {
+        fmt::print("[{}] check_offset new_offset: {:d} offset: {:d} v_offset: {:d} abcoalescing {:d} \n", NAME, 
+        vmem->get_offset(source.address, source.translation_level), 
+      	vmem->get_offset(origin_address, source.translation_level),
+        vmem->get_offset(source.v_address, source.translation_level + 1), enable_abcoalescing);
+      }
     }
   }
 

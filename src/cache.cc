@@ -222,11 +222,9 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
   }
 
   // TODO[OSM] : TEST
-  /*
-  if constexpr (champsim::debug_print_2) {
+  if constexpr (champsim::debug_print) {
     fmt::print("[{}] {} offset {} \n", NAME, __func__, OFFSET_BITS);
   }
-  */
 
   // update prefetcher on load instructions and prefetches from upper levels
   auto metadata_thru = handle_pkt.pf_metadata;
@@ -709,52 +707,42 @@ void CACHE::finish_translation(const response_type& packet)
         entry.address = champsim::splice_bits(new_p_page, entry.v_address, LOG2_PAGE_SIZE);
 	
 	// TODO[OSM] : TEST
-	/*
-	uint64_t penalty;
-	uint64_t pa;
-        if constexpr (champsim::debug_print_2) {
-           fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
-	}
-	for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
-           auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
-	   std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
-           if constexpr (champsim::debug_print_2) {
+        if constexpr (champsim::debug_print) {
+	   uint64_t penalty;
+	   uint64_t pa;
+           
+	   fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
+	   for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
+             auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
+	     std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
              fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
 	   }
-	}
-
-        if constexpr (champsim::debug_print_2) {
-           fmt::print("[{}_TRANSLATE] finish_translation check return address\n", this->NAME);
-	}
-	std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, entry.v_address);
-        pa = champsim::splice_bits(pa, entry.v_address, LOG2_PAGE_SIZE);
-        auto return_pa = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE);
-        if constexpr (champsim::debug_print_2) {
-            fmt::print("[{}_TRANSLATE] real paddr: {:#x} calculate paddr: {:#x} return paddr: {:#x} vaddr: {:#x} \n", 
-	      this->NAME, pa, entry.address, return_pa, entry.v_address);
+           
+	   fmt::print("[{}_TRANSLATE] finish_translation check return address\n", this->NAME);
+	   std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, entry.v_address);
+           pa = champsim::splice_bits(pa, entry.v_address, LOG2_PAGE_SIZE);
+           auto return_pa = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE);
+           fmt::print("[{}_TRANSLATE] real paddr: {:#x} calculate paddr: {:#x} return paddr: {:#x} vaddr: {:#x} \n", 
+	    this->NAME, pa, entry.address, return_pa, entry.v_address);
         }
-	*/
       }
       else {
         entry.address = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE); // translated address
 	
 	// TODO[OSM] : TEST
-	/*
-        auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
-        auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
-	uint64_t penalty;
-	uint64_t pa;
-        if constexpr (champsim::debug_print_2) {
-           fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
-	}
-	for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
-           auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
-	   std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
-           if constexpr (champsim::debug_print_2) {
-             fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
-          }
-	}
-	*/
+        if constexpr (champsim::debug_print) {
+          auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
+          auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
+	  uint64_t penalty;
+	  uint64_t pa;
+          
+	  fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
+	  for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
+            auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
+	    std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
+            fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
+	   }
+         }
       }
       entry.is_translated = true;                                                     // This entry is now translated
     }
