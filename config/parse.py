@@ -200,9 +200,8 @@ def parse_normalized(cores, caches, ptws, pmem, vmem, merged_configs, branch_con
     tlb_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('ITLB', 'DTLB')))
     l1d_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('L1I', 'L1D')))
     caches = util.combine_named(
-            # TODO [OSM] : enable tlb coalescing (Need Modification)
             # TLBs use page offsets, Caches use block offsets
-            ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['super_page_size']) + ')'} for c in tlb_path),
+            ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['page_size']) + ')'} for c in tlb_path),
             ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['block_size']) + ')'} for c in l1d_path),
 
             caches.values(),

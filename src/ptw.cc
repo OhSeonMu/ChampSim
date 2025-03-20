@@ -62,7 +62,9 @@ auto PageTableWalker::handle_read(const request_type& handle_pkt, channel_type* 
 
   mshr_type fwd_mshr{handle_pkt, walk_init.level};
   fwd_mshr.address = champsim::splice_bits(walk_init.ptw_addr, walk_offset, LOG2_PAGE_SIZE);
-  fwd_mshr.v_address = handle_pkt.address;
+  // TODO[OSM] : TEST
+  // fwd_mshr.v_address = handle_pkt.address;
+  fwd_mshr.v_address = handle_pkt.v_address;
   if (handle_pkt.response_requested)
     fwd_mshr.to_return = {&ul->returned};
 
@@ -159,9 +161,14 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
     auto new_pt_offset = (enable_abcoalescing) ? 
     pte_in_block * page_in_super * lage_set + block_set :
     pte_in_block * page_in_super * lage_set + block_set + pte_in_block * small_set;
+    auto ab_pt_offset = pte_in_block * page_in_super * lage_set + block_set;
+    auto b_pt_offset = pte_in_block * page_in_super * lage_set + block_set + pte_in_block * small_set;
 
     auto origin_address = source.address;
+    auto abcoalescing_address = champsim::splice_bits(source.address, ab_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
+    auto bcoalescing_address = champsim::splice_bits(source.address, b_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
     source.address = champsim::splice_bits(source.address, new_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
+
 
     if constexpr (champsim::debug_print) {
       if ((source.address >> LOG2_PAGE_SIZE) != (origin_address >> LOG2_PAGE_SIZE)) {
@@ -175,8 +182,17 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
       	vmem->get_offset(origin_address, source.translation_level),
         vmem->get_offset(source.v_address, source.translation_level + 1), enable_abcoalescing);
       }
+      fmt::print("[{}] check_block now : {:b} is_abcoalescing {:#x} \n", NAME, 
+	source.v_address >> LOG2_PAGE_SIZE, enable_abcoalescing);
+      fmt::print("[{}] check_block default : {:b} bcoalescing: {:b} abcoalescing {:b} \n", NAME, 
+	pt_offset, b_pt_offset, ab_pt_offset);
+	// origin_address >> LOG2_BLOCK_SIZE, 
+	// bcoalescing_address >> LOG2_BLOCK_SIZE, abcoalescing_address >> LOG2_BLOCK_SIZE);
     }
   }
+  
+  if constexpr (champsim::debug_print)
+      fmt::print("[{}] check_block now : {:b} \n", NAME, source.v_address >> LOG2_PAGE_SIZE);
 
   packet.address = source.address;
   packet.v_address = source.v_address;
