@@ -22,7 +22,7 @@ from . import modules
 from . import util
 
 # TODO[OSM] : enable tlb coalescing
-default_root = { 'block_size': 64, 'page_size': 4096, 'super_page_size': 4096, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
+default_root = { 'block_size': 64, 'page_size': 4096, 'super_page_size': 4096, 'tlb_page_size': 4096, 'heartbeat_frequency': 10000000, 'num_cores': 1 }
 default_core = { 'frequency' : 4000 }
 # TODO[OSM] : Change Default PMEM(16G)/VMEM(4level) value
 # TODO[OSM] : Idle Memory Latency
@@ -80,8 +80,8 @@ def normalize_config(config_file):
     cores = [util.chain(cpu, util.subdict(config_file, core_keys_to_copy), {'name': 'cpu'+str(i), '_index': i}) for i,cpu in enumerate(cores)]
 
     # TODO[OSM] : prefetch tlb
-    # pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB')
-    pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB', 'PB')
+    pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB')
+    # pinned_cache_names = ('L1I', 'L1D', 'ITLB', 'DTLB', 'L2C', 'STLB', 'PB')
     caches = util.combine_named(
             config_file.get('caches', []),
 
@@ -99,11 +99,11 @@ def normalize_config(config_file):
             (defaults.core_defaults(cpu, 'ITLB', ll_name='STLB') for cpu in cores),
             (defaults.core_defaults(cpu, 'DTLB', ll_name='STLB') for cpu in cores),
             # TODO[OSM] : prefetch tlb
-            (defaults.core_defaults(cpu, 'STLB', ll_name='PB') for cpu in cores),
+            # (defaults.core_defaults(cpu, 'STLB', ll_name='PB') for cpu in cores),
             ({**defaults.core_defaults(cpu, 'L2C'), 'lower_level': 'LLC'} for cpu in cores),
             # TODO[OSM] : prefetch tlb
-            # (defaults.core_defaults(cpu, 'STLB', ll_name='PTW') for cpu in cores)
-            (defaults.core_defaults(cpu, 'PB', ll_name='PTW') for cpu in cores)
+            (defaults.core_defaults(cpu, 'STLB', ll_name='PTW') for cpu in cores)
+            # (defaults.core_defaults(cpu, 'PB', ll_name='PTW') for cpu in cores)
             )
 
     ptws = util.combine_named(
@@ -200,8 +200,9 @@ def parse_normalized(cores, caches, ptws, pmem, vmem, merged_configs, branch_con
     tlb_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('ITLB', 'DTLB')))
     l1d_path = itertools.chain.from_iterable(util.iter_system(caches, cpu[name]) for cpu,name in itertools.product(cores, ('L1I', 'L1D')))
     caches = util.combine_named(
+            # TODO[OSM] : enable coalescing tlb
             # TLBs use page offsets, Caches use block offsets
-            ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['page_size']) + ')'} for c in tlb_path),
+            ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['tlb_page_size']) + ')'} for c in tlb_path),
             ({'name': c['name'], '_offset_bits': 'champsim::lg2(' + str(config_file['block_size']) + ')'} for c in l1d_path),
 
             caches.values(),
@@ -243,7 +244,7 @@ def parse_normalized(cores, caches, ptws, pmem, vmem, merged_configs, branch_con
 
     env_vars = ('CC', 'CXX', 'CPPFLAGS', 'CXXFLAGS', 'LDFLAGS', 'LDLIBS')
     # TODO[OSM] : enable tlb coalescing
-    extern_config_file_keys = ('block_size', 'page_size', 'super_page_size', 'heartbeat_frequency', 'num_cores')
+    extern_config_file_keys = ('block_size', 'page_size', 'super_page_size', 'tlb_page_size', 'heartbeat_frequency', 'num_cores')
 
     return elements, modules_to_compile, module_info, util.subdict(config_file, extern_config_file_keys), util.subdict(config_file, env_vars)
 

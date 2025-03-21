@@ -384,6 +384,11 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
       success = lower_level->add_rq(fwd_pkt);
     else
       success = lower_level->add_pq(fwd_pkt);
+      
+    
+    if constexpr (champsim::debug_print) {
+      fmt::print("[{}] {} do add queue {:#b} \n", NAME, __func__, fwd_pkt.v_address);
+    }
 
     if (!success) {
       if constexpr (champsim::debug_print) {
@@ -689,12 +694,21 @@ void CACHE::finish_translation(const response_type& packet)
   auto matches_vpage = [this, page_num = packet.v_address >> LOG2_PAGE_SIZE](const auto& entry) {
     auto SUPER_INDEX_SIZE = SUPER_PAGE_SIZE / PAGE_SIZE;
     auto LOG2_SUPER_INDEX_SIZE = champsim::lg2(SUPER_INDEX_SIZE);
+    
+    if constexpr (champsim::debug_print) {
+      fmt::print("[{}_TRANSLATE] matches_vpage page_num: {:#x} vaddr: {:#x} cycle: {}\n", this->NAME, page_num, entry.v_address >> LOG2_PAGE_SIZE, this->current_cycle);
+    }
+
     return (this->coalescing_translation) ? 
 	    (entry.v_address >> LOG2_SUPER_PAGE_SIZE) == (page_num >> LOG2_SUPER_INDEX_SIZE) :
 	    (entry.v_address >> LOG2_PAGE_SIZE) == page_num;
   };
 
   auto mark_translated = [p_page = packet.data, this](auto& entry) {
+    if constexpr (champsim::debug_print) {
+      fmt::print("[{}_TRANSLATE] marked_translated paddr: {:#x} vaddr: {:#x} cycle: {}\n", this->NAME, entry.address, entry.v_address, this->current_cycle);
+    }
+
     // TODO[OSM] : prefetch tlb
     if ((!entry.is_translated) && (entry.translate_issued)) {
       // TODO[OSM] : enable tlb coalescing
@@ -711,14 +725,14 @@ void CACHE::finish_translation(const response_type& packet)
 	   uint64_t penalty;
 	   uint64_t pa;
            
-	   fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
+	   fmt::print("[{}_TRANSLATE] check continuous allocation\n", this->NAME);
 	   for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
              auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
 	     std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
              fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
 	   }
            
-	   fmt::print("[{}_TRANSLATE] finish_translation check return address\n", this->NAME);
+	   fmt::print("[{}_TRANSLATE] check return address\n", this->NAME);
 	   std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, entry.v_address);
            pa = champsim::splice_bits(pa, entry.v_address, LOG2_PAGE_SIZE);
            auto return_pa = champsim::splice_bits(p_page, entry.v_address, LOG2_PAGE_SIZE);
@@ -736,19 +750,19 @@ void CACHE::finish_translation(const response_type& packet)
 	  uint64_t penalty;
 	  uint64_t pa;
           
-	  fmt::print("[{}_TRANSLATE] finish_translation check continuous allocation\n", this->NAME);
+	  fmt::print("[{}_TRANSLATE] check continuous allocation\n", this->NAME);
 	  for( uint64_t index = 0; index < SUPER_INDEX_SIZE; index++) {
             auto alloc_vaddr = champsim::splice_bits(entry.v_address >> LOG2_PAGE_SIZE, index, LOG2_SUPER_INDEX_SIZE);
 	    std::tie(pa, penalty) = vmem->va_to_pa(entry.cpu, alloc_vaddr << LOG2_PAGE_SIZE);
             fmt::print("[{}_TRANSLATE] paddr: {:#x} vaddr: {:#x}\n", this->NAME, pa, alloc_vaddr << LOG2_PAGE_SIZE);
 	   }
          }
+    
+	if constexpr (champsim::debug_print) {
+          fmt::print("[{}_TRANSLATE] marked_translated paddr: {:#x} vaddr: {:#x} cycle: {}\n", this->NAME, entry.address, entry.v_address, this->current_cycle);
+        }  
       }
       entry.is_translated = true;                                                     // This entry is now translated
-    }
-
-    if constexpr (champsim::debug_print) {
-      fmt::print("[{}_TRANSLATE] finish_translation paddr: {:#x} vaddr: {:#x} cycle: {}\n", this->NAME, entry.address, entry.v_address, this->current_cycle);
     }
   };
 
@@ -795,7 +809,7 @@ void CACHE::issue_translation()
       q_entry.translate_issued = this->lower_translate->add_rq(fwd_pkt);
       if constexpr (champsim::debug_print) {
         if (q_entry.translate_issued) {
-          fmt::print("[TRANSLATE] do_issue_translation instr_id: {} paddr: {:#x} vaddr: {:#x} cycle: {}\n", q_entry.instr_id, q_entry.address, q_entry.v_address,
+          fmt::print("[TRANSLATE] do_issue_translation instr_id: {} paddr: {:#x} vaddr: {:#b} cycle: {}\n", q_entry.instr_id, q_entry.address, q_entry.v_address >> LOG2_PAGE_SIZE,
                      access_type_names.at(champsim::to_underlying(q_entry.type)));
         }
       }

@@ -147,7 +147,6 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
   request_type packet;
   
   // TODO[OSM] : enable block coalescing 
-  if(enable_coalescing & enable_bcoalescing & (source.translation_level == 0)) {
     const auto PTE_SIZE = 8;
     auto page_in_super = SUPER_PAGE_SIZE / PAGE_SIZE;
     auto pte_in_block = BLOCK_SIZE / PTE_SIZE;
@@ -167,29 +166,16 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
     auto origin_address = source.address;
     auto abcoalescing_address = champsim::splice_bits(source.address, ab_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
     auto bcoalescing_address = champsim::splice_bits(source.address, b_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
-    source.address = champsim::splice_bits(source.address, new_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
 
+    if(enable_coalescing & enable_bcoalescing & (source.translation_level == 0))
+      source.address = champsim::splice_bits(source.address, new_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
 
-    if constexpr (champsim::debug_print) {
-      if ((source.address >> LOG2_PAGE_SIZE) != (origin_address >> LOG2_PAGE_SIZE)) {
-        fmt::print("[{}] check_pfn new_address_pfn: {:#x} address_pfn: {:#x}\n", NAME, 
-        source.address >> LOG2_PAGE_SIZE, origin_address >> LOG2_PAGE_SIZE);
+    if(source.translation_level == 0) {
+      if constexpr (champsim::debug_print) {
+        fmt::print("[{}] check_block default : {:b} bcoalescing: {:b} abcoalescing {:b} \n", NAME, 
+	  pt_offset, b_pt_offset, ab_pt_offset);
       }
-      if (vmem->get_offset(origin_address, source.translation_level) !=
-          vmem->get_offset(source.v_address, source.translation_level + 1)) {
-        fmt::print("[{}] check_offset new_offset: {:d} offset: {:d} v_offset: {:d} abcoalescing {:d} \n", NAME, 
-        vmem->get_offset(source.address, source.translation_level), 
-      	vmem->get_offset(origin_address, source.translation_level),
-        vmem->get_offset(source.v_address, source.translation_level + 1), enable_abcoalescing);
-      }
-      fmt::print("[{}] check_block now : {:b} is_abcoalescing {:#x} \n", NAME, 
-	source.v_address >> LOG2_PAGE_SIZE, enable_abcoalescing);
-      fmt::print("[{}] check_block default : {:b} bcoalescing: {:b} abcoalescing {:b} \n", NAME, 
-	pt_offset, b_pt_offset, ab_pt_offset);
-	// origin_address >> LOG2_BLOCK_SIZE, 
-	// bcoalescing_address >> LOG2_BLOCK_SIZE, abcoalescing_address >> LOG2_BLOCK_SIZE);
     }
-  }
   
   if constexpr (champsim::debug_print)
       fmt::print("[{}] check_block now : {:b} \n", NAME, source.v_address >> LOG2_PAGE_SIZE);

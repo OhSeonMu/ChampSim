@@ -37,9 +37,11 @@ bool do_collision_for(Iter begin, Iter end, champsim::channel::request_type& pac
   // (already translated) X.
   if (auto found = std::find_if(begin, end, [addr = packet.address, shamt](const auto& x) { return (x.address >> shamt) == (addr >> shamt); });
       found != end && packet.is_translated == found->is_translated) {
+
     // TODO[OSM] : TEST
-    if constexpr (champsim::debug_print)
+    if constexpr (champsim::debug_print) {
       fmt::print("[channel] {} v_address: {:#x} is_translated: {:#x} \n", __func__, found->v_address, found->is_translated);
+    }
 
     func(packet, *found);
     return true;
@@ -144,6 +146,13 @@ bool champsim::channel::do_add_queue(R& queue, std::size_t queue_size, const typ
   auto fwd_pkt = packet;
   fwd_pkt.forward_checked = false;
   queue.push_back(fwd_pkt);
+    
+  // TODO[OSM] : TEST
+  if constexpr (champsim::debug_print) {
+    fmt::print("[channel] {} instr_id: {} address: {:#b} v_address: {:#b} type: {}\n", __func__, packet.instr_id, packet.address, packet.v_address,
+        access_type_names.at(champsim::to_underlying(packet.type)));
+  }
+
 
   return true;
 }

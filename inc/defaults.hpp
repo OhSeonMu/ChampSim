@@ -263,6 +263,7 @@ const auto default_stlb = CACHE::Builder{}
                               .replacement<CACHE::rreplacementDlru>();
 
 // TODO[OSM] : prefetch tlb
+/*
 const auto default_pb = CACHE::Builder{}
                               .sets(1)
                               .ways(64)
@@ -296,6 +297,7 @@ const auto default_pb = CACHE::Builder{}
                               .perfect_activate(access_type::L2_TRANSLATION, access_type::L1_TRANSLATION)
                               .prefetcher<CACHE::pprefetcherDno>()
                               .replacement<CACHE::rreplacementDlru>();
+*/
 
 const auto default_llc = CACHE::Builder{}
                              .name("LLC")

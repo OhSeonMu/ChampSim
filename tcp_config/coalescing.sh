@@ -51,7 +51,7 @@
     "virtual_prefetch": true,
     "prefetch_activate": "LOAD,PREFETCH",
     "prefetcher": "no_instr",
-    "coalescing_translation": true
+    "coalescing_translation": false
   },
   "L1D": {
     "sets": 64,
@@ -67,7 +67,7 @@
     "virtual_prefetch": false,
     "prefetch_activate": "LOAD,PREFETCH",
     "prefetcher": "no",
-    "coalescing_translation": true
+    "coalescing_translation": false
   },
   "L2C": {
     "sets": 1024,
@@ -134,9 +134,9 @@
     "max_read": 2,
     "max_write": 2,
     "enable_calloc": 1,
-    "enable_coalescing": 1,
-    "enable_bcoalescing": 1,
-    "enable_abcoalescing": 1
+    "enable_coalescing": 0,
+    "enable_bcoalescing": 0,
+    "enable_abcoalescing": 0
   },
   "LLC": {
     "frequency": 4000,

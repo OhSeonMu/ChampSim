@@ -2,7 +2,8 @@
     "executable_name": "champsim",
     "block_size": 64,
     "page_size": 4096,
-    "super_page_size": 32768,
+    "super_page_size": 4096,
+    "tlb_page_size": 4096,
     "heartbeat_frequency": 10000000,
     "num_cores": 1,
 
@@ -52,7 +53,8 @@
         "prefetch_as_load": false,
         "virtual_prefetch": true,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no_instr"
+        "prefetcher": "no_instr", 
+	"coalescing_translation": false
     },
 
     "L1D": {
@@ -68,7 +70,8 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no"
+        "prefetcher": "no",
+	"coalescing_translation": false
     },
 
     "L2C": {
@@ -126,20 +129,6 @@
         "prefetch_as_load": false
     },
 
-    "PB": {
-        "sets": 1,
-        "ways": 32,
-        "rq_size": 32,
-        "wq_size": 32,
-        "pq_size": 32,
-        "mshr_size": 16,
-        "latency": 2,
-        "max_tag_check": 1,
-        "max_fill": 1,
-        "prefetch_as_load": true,
-	"is_pb": true
-    },
-
     "PTW": {
     	"pscl5_set": 1,
 	"pscl5_way": 2,
@@ -152,7 +141,11 @@
 	"rq_size": 16,
 	"mshr_size": 5,
 	"max_read": 2,
-	"max_write": 2
+	"max_write": 2,
+	"enable_calloc": 0,
+	"enable_coalescing": 0,
+	"enable_bcoalescing": 0,
+	"enable_abcoalescing": 0
     },
 
     "LLC": {
@@ -191,6 +184,7 @@
 
     "virtual_memory": {
         "pte_page_size": 4096,
+        "super_pte_page_size": 4096,
         "num_levels": 4,
         "minor_fault_penalty": 200
     }

@@ -203,7 +203,7 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             ('enable_coalescing', True): '.set_enable_coalescing()',
             ('enable_coalescing', False): '.reset_enable_coalescing()',
             ('coalescing_translation', True): '.set_coalescing_translation()',
-            ('coalescing_translation', False): '.set_coalescing_translation()',
+            ('coalescing_translation', False): '.reset_coalescing_translation()',
         }
 
         yield from (v.format(**elem) for k,v in cache_builder_parts.items() if k in elem)

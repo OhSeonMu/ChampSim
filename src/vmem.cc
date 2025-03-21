@@ -108,13 +108,13 @@ std::pair<uint64_t, uint64_t> VirtualMemory::va_to_pa_coalescing(uint32_t cpu_nu
 	  paddr = champsim::splice_bits(ppage->second, vaddr, LOG2_PAGE_SIZE);
       }
   }
-    
+  
   if constexpr (champsim::debug_print) {
     auto [new_ppage, new_fault] = vpage_to_ppage_map.insert({{cpu_num, vaddr >> LOG2_PAGE_SIZE}, ppage_front()});
     auto real_paddr = champsim::splice_bits(new_ppage->second, vaddr, LOG2_PAGE_SIZE);
     fmt::print("[VMEM] {} paddr: {:x} real_paddr: {:x} vaddr: {:x} fault: {}\n", __func__, paddr, real_paddr, vaddr, !(is_find));
   }
-
+    
   // return {paddr, !(is_find)? minor_fault_penalty * SUPER_INDEX_SIZE: 0};
   return {paddr, !(is_find)? minor_fault_penalty: 0};
 }
