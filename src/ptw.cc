@@ -32,7 +32,7 @@ PageTableWalker::PageTableWalker(Builder b)
       // TODO[OSM] : prefetch tempo
       // TODO[OSM] : enable tlb coalescing
       // TODO[OSM] : enable block coalescing
-      enable_asap(b.m_enable_asap), enable_ptempo(b.m_enable_ptempo), enable_calloc(b.m_enable_calloc), enable_coalescing(b.m_enable_coalescing), enable_bcoalescing(b.m_enable_bcoalescing), enable_abcoalescing(b.m_enable_abcoalescing)
+      enable_asap(b.m_enable_asap), enable_ptempo(b.m_enable_ptempo), enable_calloc(b.m_enable_calloc), enable_coalescing(b.m_enable_coalescing), enable_bcoalescing(b.m_enable_bcoalescing), enable_abcoalescing(b.m_enable_abcoalescing), enable_aabcoalescing(b.m_enable_aabcoalescing)
 {
   std::vector<std::array<uint32_t, 3>> local_pscl_dims{};
   std::remove_copy_if(std::begin(b.m_pscl), std::end(b.m_pscl), std::back_inserter(local_pscl_dims), [](auto x) { return std::get<0>(x) == 0; });
@@ -151,20 +151,27 @@ auto PageTableWalker::step_translation(mshr_type& source) -> std::optional<mshr_
     auto page_in_super = SUPER_PAGE_SIZE / PAGE_SIZE;
     auto pte_in_block = BLOCK_SIZE / PTE_SIZE;
     auto pt_offset = vmem->get_offset(source.v_address, source.translation_level + 1);
+    auto pd_offset = vmem->get_offset(source.v_address, source.translation_level + 2);
 
     auto lage_set = pt_offset >> (champsim::lg2(pte_in_block) + champsim::lg2(page_in_super));
     auto block_set = (pt_offset & champsim::bitmask(champsim::lg2(pte_in_block) + champsim::lg2(page_in_super))) 
 	>> champsim::lg2(page_in_super);
     auto small_set = (pt_offset & champsim::bitmask(champsim::lg2(page_in_super)));
+    auto new_set_1 = pd_offset >> champsim::lg2(page_in_super);
+    auto new_set_2 = (pd_offset & champsim::bitmask(champsim::lg2(page_in_super)));
+    auto new_set = ((new_set_1 + new_set_2) & champsim::bitmask(champsim::lg2(page_in_super)));
     
-    auto new_pt_offset = (enable_abcoalescing) ? 
-    pte_in_block * page_in_super * lage_set + block_set :
-    pte_in_block * page_in_super * lage_set + block_set + pte_in_block * small_set;
-    auto ab_pt_offset = pte_in_block * page_in_super * lage_set + block_set;
+    auto ab_pt_offset = pte_in_block * lage_set + block_set;
+    auto aab_pt_offset = pte_in_block * lage_set + block_set + page_in_super * pte_in_block * new_set;
     auto b_pt_offset = pte_in_block * page_in_super * lage_set + block_set + pte_in_block * small_set;
+    auto new_pt_offset = 
+	(enable_aabcoalescing & enable_abcoalescing) ? aab_pt_offset :
+	(enable_abcoalescing) ? ab_pt_offset :
+    	b_pt_offset; 
 
     auto origin_address = source.address;
     auto abcoalescing_address = champsim::splice_bits(source.address, ab_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
+    auto aabcoalescing_address = champsim::splice_bits(source.address, aab_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
     auto bcoalescing_address = champsim::splice_bits(source.address, b_pt_offset * PTE_SIZE, LOG2_PAGE_SIZE);
 
     if(enable_coalescing & enable_bcoalescing & (source.translation_level == 0))

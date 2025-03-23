@@ -107,6 +107,7 @@ public:
   bool enable_coalescing;
   bool enable_bcoalescing;
   bool enable_abcoalescing;
+  bool enable_aabcoalescing;
 
   class Builder
   {
@@ -133,6 +134,7 @@ public:
     bool m_enable_coalescing{};
     bool m_enable_bcoalescing{};
     bool m_enable_abcoalescing{};
+    bool m_enable_aabcoalescing{};
 
     friend class PageTableWalker;
 
@@ -223,6 +225,11 @@ public:
     Builder& enable_abcoalescing(bool enable_abcoalescing_)
     {
       m_enable_abcoalescing = enable_abcoalescing_;
+      return *this;
+    }
+    Builder& enable_aabcoalescing(bool enable_aabcoalescing_)
+    {
+      m_enable_aabcoalescing = enable_aabcoalescing_;
       return *this;
     }
   };

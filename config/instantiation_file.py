@@ -162,6 +162,8 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem):
             yield '.enable_bcoalescing({enable_bcoalescing})'.format(**ptw)
         if "enable_abcoalescing" in ptw:
             yield '.enable_abcoalescing({enable_abcoalescing})'.format(**ptw)
+        if "enable_aabcoalescing" in ptw:
+            yield '.enable_aabcoalescing({enable_aabcoalescing})'.format(**ptw)
 
         yield '.upper_levels({{{}}})'.format(vector_string('&{}_to_{}_queues'.format(ul, ptw['name']) for ul in upper_levels[ptw['name']]['uppers']))
         yield '.lower_level({})'.format('&{}_to_{}_queues'.format(ptw['name'], ptw['lower_level']))

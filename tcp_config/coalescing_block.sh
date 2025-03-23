@@ -136,7 +136,8 @@
     "enable_calloc": 1,
     "enable_coalescing": 1,
     "enable_bcoalescing": 1,
-    "enable_abcoalescing": 0
+    "enable_abcoalescing": 0,
+    "enable_aabcoalescing": 0
   },
   "LLC": {
     "frequency": 4000,
