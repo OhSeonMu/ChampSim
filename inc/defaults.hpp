@@ -339,7 +339,7 @@ const auto default_ptw =
     // TODO[OSM] : prefetch tempo
     // TODO[OSM] : enable tlb coalescing
     // TODO[OSM] : enable block coalescing
-    PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0).enable_ptempo(0).enable_coalescing(0).enable_bcoalescing(0).enable_abcoalescing(0).enable_aabcoalescing(0).enable_calloc(0);
+    PageTableWalker::Builder{}.tag_bandwidth(2).fill_bandwidth(2).mshr_size(5).add_pscl(5, 1, 2).add_pscl(4, 1, 4).add_pscl(3, 2, 4).add_pscl(2, 4, 8).enable_asap(0).enable_ptempo(0).enable_coalescing(0).enable_bcoalescing(0).enable_abcoalescing(0).enable_aabcoalescing(0).enable_aaabcoalescing(0).enable_calloc(0);
 } // namespace champsim::defaults
 
 #endif

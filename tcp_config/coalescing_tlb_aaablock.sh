@@ -3,7 +3,7 @@
   "block_size": 64,
   "page_size": 4096,
   "super_page_size": 32768,
-  "tlb_page_size": 4096,
+  "tlb_page_size": 32768,
   "heartbeat_frequency": 10000000,
   "num_cores": 1,
   "ooo_cpu": [
@@ -138,7 +138,7 @@
     "enable_bcoalescing": 1,
     "enable_abcoalescing": 1,
     "enable_aabcoalescing": 1,
-    "enable_aaabcoalescing": 0
+    "enable_aaabcoalescing": 1
   },
   "LLC": {
     "frequency": 4000,
